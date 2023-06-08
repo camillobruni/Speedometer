@@ -17,9 +17,9 @@ Suites.enable = function (names, tags) {
             if (!Tags.has(tag))
                 console.error(`Unknown Suites tag: "${tag}"`);
         });
-        tags = new Set(tags);
+        const tagSet = new Set(tags);
         this.forEach((suite) => {
-            suite.disabled = !suite.tags.some((tag) => tags.has(tag));
+            suite.disabled = !suite.tags.some((tag) => tagSet.has(tag));
         });
     } else {
         console.warn("Neither names nor tags provided. Enabling all default suites.");
@@ -27,25 +27,24 @@ Suites.enable = function (names, tags) {
             suite.disabled = !("default" in suite.tags);
         });
     }
-    if (this.some((suite) => !suite.disabled))
-        return;
-    let message, debugInfo;
-    if (names?.length) {
-        message = `Suites "${names}" does not match any Suite. No tests to run.`;
-        debugInfo = {
-            providedNames: names,
-            validNames: this.map((each) => each.name),
-        };
-    } else if (tags?.length) {
-        tags = Array.from(tags);
-        message = `Tags "${tags}" does not match any Suite. No tests to run.`;
-        debugInfo = {
-            providedTags: tags,
-            validTags: Array.from(Tags),
-        };
+    if (this.every((suite) => suite.disabled)) {
+        let message, debugInfo;
+        if (names?.length) {
+            message = `Suites "${names}" does not match any Suite. No tests to run.`;
+            debugInfo = {
+                providedNames: names,
+                validNames: this.map((each) => each.name),
+            };
+        } else if (tags?.length) {
+            message = `Tags "${tags}" does not match any Suite. No tests to run.`;
+            debugInfo = {
+                providedTags: tags,
+                validTags: Array.from(Tags),
+            };
+        }
+        alert(message);
+        console.error(message, debugInfo);
     }
-    alert(message);
-    console.error(message, debugInfo);
 };
 
 Suites.push({

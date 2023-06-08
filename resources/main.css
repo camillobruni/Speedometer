@@ -221,7 +221,7 @@ button,
 .developer-mode-content .button-bar {
     display: flex;
     margin-top: 5px;
-    gap: 3px;
+    gap: 3pxv;
 }
 
 .developer-mode-content button {
