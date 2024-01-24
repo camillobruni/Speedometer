@@ -872,24 +872,26 @@ Suites.push({
     ],
 });
 
-Suites.push({
-    name: "Editor-CodeMirror",
-    url: "editors/dist/codemirror.html",
-    tags: ["editor"],
-    async prepare(page) {},
-    tests: [
-        new BenchmarkTestStep("Long", (page) => {
-            page.querySelector("#create").click();
-            page.querySelector("#layout").click();
-            page.querySelector("#long").click();
-            page.querySelector("#layout").click();
-        }),
-        new BenchmarkTestStep("Highlight", (page) => {
-            page.querySelector("#highlight").click();
-            page.querySelector("#layout").click();
-        }),
-    ],
-});
+for (let name of ["Editors", "Editors_Sanitized"]) {
+    Suites.push({
+        name: name + "-CodeMirror",
+        url: name.toLowerCase() + "/dist/codemirror.html",
+        tags: ["editor"],
+        async prepare(page) {},
+        tests: [
+            new BenchmarkTestStep("Long", (page) => {
+                page.querySelector("#create").click();
+                page.querySelector("#layout").click();
+                page.querySelector("#long").click();
+                page.querySelector("#layout").click();
+            }),
+            new BenchmarkTestStep("Highlight", (page) => {
+                page.querySelector("#highlight").click();
+                page.querySelector("#layout").click();
+            }),
+        ],
+    });
+}
 
 Suites.push({
     name: "Editor-TipTap",
