@@ -32,10 +32,8 @@ class MainBenchmarkClient {
     }
 
     start() {
-        if (this._isStepping())
-            this._clearStepping();
-        else if (this._startBenchmark())
-            this._showSection("#running");
+        if (this._isStepping()) this._clearStepping();
+        else if (this._startBenchmark()) this._showSection("#running");
     }
 
     step() {
@@ -43,8 +41,7 @@ class MainBenchmarkClient {
         this._steppingPromise = new Promise((resolve) => {
             this._steppingResolver = resolve;
         });
-        if (this._isStepping())
-            currentSteppingResolver();
+        if (this._isStepping()) currentSteppingResolver();
         if (!this._isRunning) {
             this._startBenchmark();
             this._showSection("#running");
@@ -68,8 +65,7 @@ class MainBenchmarkClient {
     }
 
     async _startBenchmark() {
-        if (this._isRunning)
-            return false;
+        if (this._isRunning) return false;
 
         const { benchmarkConfigurator } = await this._benchmarkConfiguratorPromise;
 
@@ -87,8 +83,7 @@ class MainBenchmarkClient {
             );
             return false;
         }
-        if (!this._isStepping())
-            this._developerModeContainer?.remove();
+        if (!this._isStepping()) this._developerModeContainer?.remove();
         this._progressCompleted = document.getElementById("progress-completed");
         if (params.iterationCount < 50) {
             const progressNode = document.getElementById("progress");
@@ -123,8 +118,7 @@ class MainBenchmarkClient {
     async willRunTest(suite, test) {
         document.getElementById("info-label").textContent = suite.name;
         document.getElementById("info-progress").textContent = `${this._finishedTestCount} / ${this.stepCount}`;
-        if (this._steppingPromise)
-            await this._awaitNextStep(suite, test);
+        if (this._steppingPromise) await this._awaitNextStep(suite, test);
     }
 
     didFinishSuite() {
@@ -148,16 +142,12 @@ class MainBenchmarkClient {
         this._metrics = metrics;
 
         const scoreResults = this._computeResults(this._measuredValuesList, "score");
-        if (scoreResults.isValid)
-            this._populateValidScore(scoreResults);
-        else
-            this._populateInvalidScore();
+        if (scoreResults.isValid) this._populateValidScore(scoreResults);
+        else this._populateInvalidScore();
 
         this._populateDetailedResults(metrics);
-        if (params.developerMode)
-            this.showResultsDetails();
-        else
-            this.showResultsSummary();
+        if (params.developerMode) this.showResultsDetails();
+        else this.showResultsSummary();
         globalThis.dispatchEvent(new Event("SpeedometerDone"));
     }
 
@@ -176,8 +166,7 @@ class MainBenchmarkClient {
 
         this._updateGaugeNeedle(scoreResults.mean);
         document.getElementById("result-number").textContent = scoreResults.formattedMean;
-        if (scoreResults.formattedDelta)
-            document.getElementById("confidence-number").textContent = `\u00b1 ${scoreResults.formattedDelta}`;
+        if (scoreResults.formattedDelta) document.getElementById("confidence-number").textContent = `\u00b1 ${scoreResults.formattedDelta}`;
     }
 
     _populateInvalidScore() {
@@ -188,8 +177,7 @@ class MainBenchmarkClient {
 
     _computeResults(measuredValuesList, displayUnit) {
         function valueForUnit(measuredValues) {
-            if (displayUnit === "ms")
-                return measuredValues.geomean;
+            if (displayUnit === "ms") return measuredValues.geomean;
             return measuredValues.score;
         }
 
@@ -258,8 +246,7 @@ class MainBenchmarkClient {
         document.documentElement.style.setProperty("--metrics-line-height", `${trackHeight}px`);
         const plotWidth = (params.viewport.width - 120) / 2;
         const aggregateMetrics = [metrics.Geomean];
-        if (params.measurePrepare)
-            aggregateMetrics.push(metrics.Prepare);
+        if (params.measurePrepare) aggregateMetrics.push(metrics.Prepare);
         document.getElementById("aggregate-chart").innerHTML = renderMetricView({
             metrics: aggregateMetrics,
             width: plotWidth,
@@ -305,20 +292,16 @@ class MainBenchmarkClient {
     }
 
     _populateNonStandardParams() {
-        if (params === defaultParams)
-            return;
+        if (params === defaultParams) return;
         const paramsDiff = [];
         const usedSearchparams = params.toSearchParamsObject();
         const defaultSearchParams = defaultParams.toCompleteSearchParamsObject(false);
         for (const [key, value] of usedSearchparams.entries()) {
-            if (key === "developerMode")
-                continue;
+            if (key === "developerMode") continue;
             const defaultValue = defaultSearchParams.get(key);
-            if (value !== defaultValue)
-                paramsDiff.push({ key, value, defaultValue });
+            if (value !== defaultValue) paramsDiff.push({ key, value, defaultValue });
         }
-        if (paramsDiff.length === 0)
-            return;
+        if (paramsDiff.length === 0) return;
         const body = document.createElement("tbody");
         for (const { key, value, defaultValue } of paramsDiff) {
             const row = body.insertRow();
@@ -349,16 +332,14 @@ class MainBenchmarkClient {
     async evaluateParams() {
         const { benchmarkConfigurator } = await this._benchmarkConfiguratorPromise;
 
-        if (params.suites.length > 0 || params.tags.length > 0)
-            benchmarkConfigurator.enableSuites(params.suites, params.tags);
+        if (params.suites.length > 0 || params.tags.length > 0) benchmarkConfigurator.enableSuites(params.suites, params.tags);
 
         if (params.developerMode) {
             this._developerModeContainer = createDeveloperModeContainer();
             document.body.append(this._developerModeContainer);
         }
 
-        if (params.startAutomatically)
-            this.start();
+        if (params.startAutomatically) this.start();
     }
 
     _hashChangeHandler() {
@@ -381,8 +362,7 @@ class MainBenchmarkClient {
 
     _logoClickHandler(event) {
         // Prevent any accidental UI changes during benchmark runs.
-        if (!this._isRunning)
-            this._showSection("#home");
+        if (!this._isRunning) this._showSection("#home");
         event.preventDefault();
         return false;
     }
@@ -397,8 +377,7 @@ class MainBenchmarkClient {
 
     _formattedJSONResult({ modern = false }) {
         const indent = "    ";
-        if (modern)
-            return JSON.stringify(this._metrics, undefined, indent);
+        if (modern) return JSON.stringify(this._metrics, undefined, indent);
         return JSON.stringify(this._measuredValuesList, undefined, indent);
     }
 
@@ -411,8 +390,7 @@ class MainBenchmarkClient {
         // TodoMVC-JavaScript-ES5/Adding100Items,num,...,num
         // ...
         const labels = ["Name"];
-        for (let i = 0; i < params.iterationCount; i++)
-            labels.push(`#${i + 1}`);
+        for (let i = 0; i < params.iterationCount; i++) labels.push(`#${i + 1}`);
         labels.push("Mean");
         const metrics = Array.from(Object.values(this._metrics)).filter((metric) => !metric.name.startsWith("Iteration-"));
         const metricsValues = metrics.map((metric) => [metric.name, ...metric.values, metric.mean].join(","));
@@ -448,8 +426,7 @@ class MainBenchmarkClient {
 
     _setLocationHash(hash) {
         if (hash === "#home" || hash === "") {
-            if (window.location.hash !== hash)
-                window.location.hash = "#home";
+            if (window.location.hash !== hash) window.location.hash = "#home";
             hash = "#home";
             this._removeLocationHash();
         } else {
@@ -484,7 +461,5 @@ function init() {
     globalThis.benchmarkClient = new MainBenchmarkClient();
 }
 
-if (document.readyState === "loading")
-    document.addEventListener("DOMContentLoaded", init);
-else
-    init();
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
+else init();

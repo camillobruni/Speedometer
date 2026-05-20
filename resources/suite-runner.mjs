@@ -50,7 +50,19 @@ export class SuiteRunner {
 
     async run() {
         await this._prepareSuite();
+        await this._waitAfterSetup();
         await this._runSuite();
+    }
+
+    async _waitAfterSetup() {
+        if (this.#params.waitAfterSetup) {
+            const startLabel = `suite-${this.#suite.name}-wait-after-setup-start`;
+            const endLabel = `suite-${this.#suite.name}-wait-after-setup-end`;
+            performance.mark(startLabel);
+            await new Promise((resolve) => setTimeout(resolve, this.#params.waitAfterSetup));
+            performance.mark(endLabel);
+            performance.measure(`suite-${this.#suite.name}-wait-after-setup`, startLabel, endLabel);
+        }
     }
 
     async _prepareSuite() {
@@ -74,8 +86,7 @@ export class SuiteRunner {
 
         performance.mark(suiteStartLabel);
         for (const test of this.#suite.tests) {
-            if (this.#client?.willRunTest)
-                await this.#client.willRunTest(this.#suite, test);
+            if (this.#client?.willRunTest) await this.#client.willRunTest(this.#suite, test);
 
             const testRunnerType = this.#suite.type ?? this.params.useAsyncSteps ? "async" : "default";
             const testRunnerClass = TEST_RUNNER_LOOKUP[testRunnerType];
@@ -94,10 +105,8 @@ export class SuiteRunner {
         // privacy.resistFingerprinting preference), it's possible that the measured
         // total duration for an entire is 0.
         const { suiteTotal, suitePrepare } = this.#suiteResults.total;
-        if (suiteTotal === 0)
-            throw new Error(`Got invalid 0-time total for suite ${this.#suite.name}: ${suiteTotal}`);
-        if (this.#params.measurePrepare && suitePrepare === 0)
-            throw new Error(`Got invalid 0-time prepare time for suite ${this.#suite.name}: ${suitePrepare}`);
+        if (suiteTotal === 0) throw new Error(`Got invalid 0-time total for suite ${this.#suite.name}: ${suiteTotal}`);
+        if (this.#params.measurePrepare && suitePrepare === 0) throw new Error(`Got invalid 0-time prepare time for suite ${this.#suite.name}: ${suitePrepare}`);
     }
 
     async _loadFrame() {
@@ -112,8 +121,7 @@ export class SuiteRunner {
 
     _recordTestResults = async (test, syncTime, asyncTime) => {
         // Skip reporting updates for the warmup suite.
-        if (this.#suite === WarmupSuite)
-            return;
+        if (this.#suite === WarmupSuite) return;
 
         let total = syncTime + asyncTime;
         this.#suiteResults.tests[test.name] = {
@@ -125,8 +133,7 @@ export class SuiteRunner {
     };
 
     async _updateClient(suite = this.#suite) {
-        if (this.#client?.didFinishSuite)
-            await this.#client.didFinishSuite(suite);
+        if (this.#client?.didFinishSuite) await this.#client.didFinishSuite(suite);
     }
 }
 
@@ -150,6 +157,7 @@ export class RemoteSuiteRunner extends SuiteRunner {
         // FIXME: use this._suite in all SuiteRunner methods directly.
         try {
             await this._prepareSuite();
+            await this._waitAfterSetup();
             await this._runSuite();
         } finally {
             window.removeEventListener("message", handler);
@@ -197,20 +205,17 @@ export class RemoteSuiteRunner extends SuiteRunner {
 
     _handlePostMessage(event) {
         const callback = this.postMessageCallbacks.get(event.data.type);
-        if (callback)
-            callback(event);
+        if (callback) callback(event);
     }
 
     _startSubscription(type, callback) {
-        if (this.postMessageCallbacks.has(type))
-            throw new Error("Callback exists already");
+        if (this.postMessageCallbacks.has(type)) throw new Error("Callback exists already");
 
         this.postMessageCallbacks.set(type, callback);
     }
 
     _stopSubscription(type) {
-        if (!this.postMessageCallbacks.has(type))
-            throw new Error("Callback does not exist");
+        if (!this.postMessageCallbacks.has(type)) throw new Error("Callback does not exist");
 
         this.postMessageCallbacks.delete(type);
     }

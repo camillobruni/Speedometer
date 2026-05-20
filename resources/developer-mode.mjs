@@ -22,10 +22,13 @@ export function createDeveloperModeContainer() {
     settings.append(createUIForIterationCount());
     settings.append(createUIForMeasurePrepare());
     settings.append(createUIForWarmupSuite());
-    settings.append(createUIForWarmupBeforeSync());
+    settings.append(createUIForWaitAfterSetup());
     settings.append(createUIForSyncStepDelay());
+    settings.append(createUIForWarmupBeforeSync());
+    settings.append(createUIForWaitAfterSuite());
     settings.append(createUIForAsyncSteps());
     settings.append(createUIForLayoutMode());
+    settings.append(createUIForMeasurePrepare());
 
     content.append(document.createElement("hr"));
     content.append(settings);
@@ -81,12 +84,20 @@ function createUIForIterationCount() {
     return createTimeRangeUI("Iterations: ", "iterationCount", "#", 1, 200);
 }
 
+function createUIForWaitAfterSetup() {
+    return createTimeRangeUI("Post setup delay: ", "waitAfterSetup");
+}
+
 function createUIForWarmupBeforeSync() {
     return createTimeRangeUI("Warmup time: ", "warmupBeforeSync");
 }
 
 function createUIForSyncStepDelay() {
     return createTimeRangeUI("Sync step delay: ", "waitBeforeSync");
+}
+
+function createUIForWaitAfterSuite() {
+    return createTimeRangeUI("Post suite delay: ", "waitAfterSuite");
 }
 
 function createTimeRangeUI(labelText, paramKey, unit = "ms", min = 0, max = 1000) {
@@ -172,10 +183,8 @@ function createUIForSuites() {
         label.onclick = (event) => {
             if (event?.ctrlKey || event?.metaKey) {
                 for (let suiteIndex = 0; suiteIndex < suites.length; suiteIndex++) {
-                    if (suites[suiteIndex] !== suite)
-                        setSuiteEnabled(suiteIndex, false);
-                    else
-                        setSuiteEnabled(suiteIndex, true);
+                    if (suites[suiteIndex] !== suite) setSuiteEnabled(suiteIndex, false);
+                    else setSuiteEnabled(suiteIndex, true);
                 }
             }
         };
@@ -195,8 +204,7 @@ function createSuitesGlobalSelectButtons(setSuiteEnabled) {
     button.className = "select-all";
     button.textContent = "Select all";
     button.onclick = () => {
-        for (let suiteIndex = 0; suiteIndex < suites.length; suiteIndex++)
-            setSuiteEnabled(suiteIndex, true);
+        for (let suiteIndex = 0; suiteIndex < suites.length; suiteIndex++) setSuiteEnabled(suiteIndex, true);
 
         updateURL();
     };
@@ -206,8 +214,7 @@ function createSuitesGlobalSelectButtons(setSuiteEnabled) {
     button.textContent = "Unselect all";
     button.className = "unselect-all";
     button.onclick = () => {
-        for (let suiteIndex = 0; suiteIndex < suites.length; suiteIndex++)
-            setSuiteEnabled(suiteIndex, false);
+        for (let suiteIndex = 0; suiteIndex < suites.length; suiteIndex++) setSuiteEnabled(suiteIndex, false);
 
         updateURL();
     };
@@ -222,8 +229,7 @@ function createSuitesTagsButton(setSuiteEnabled) {
     let i = 0;
     const kTagsPerLine = 3;
     for (const tag of tags) {
-        if (tag === "all")
-            continue;
+        if (tag === "all") continue;
         if (!(i % kTagsPerLine)) {
             buttons = container.appendChild(document.createElement("div"));
             buttons.className = "button-bar";
@@ -239,10 +245,8 @@ function createSuitesTagsButton(setSuiteEnabled) {
             const selectedTag = event.target.dataTag;
             for (let suiteIndex = 0; suiteIndex < suites.length; suiteIndex++) {
                 let enabled = suites[suiteIndex].tags.includes(selectedTag);
-                if (invertSelection)
-                    enabled = !enabled;
-                if (extendSelection && !enabled)
-                    continue;
+                if (invertSelection) enabled = !enabled;
+                if (extendSelection && !enabled) continue;
                 setSuiteEnabled(suiteIndex, enabled);
             }
             updateURL();
@@ -278,21 +282,16 @@ function updateParamsSuitesAndTags() {
     // If less than all suites are selected then change the URL "Suites" GET parameter
     // to comma separate only the selected
     const selectedSuites = suites.filter((suite) => suite.enabled);
-    if (!selectedSuites.length)
-        return;
+    if (!selectedSuites.length) return;
 
     // Try finding common tags that would result in the current suite selection.
     let commonTags = new Set(selectedSuites[0].tags);
     for (const suite of suites) {
-        if (suite.enabled)
-            commonTags = new Set(suite.tags.filter((tag) => commonTags.has(tag)));
-        else
-            suite.tags.forEach((tag) => commonTags.delete(tag));
+        if (suite.enabled) commonTags = new Set(suite.tags.filter((tag) => commonTags.has(tag)));
+        else suite.tags.forEach((tag) => commonTags.delete(tag));
     }
-    if (selectedSuites.length > 1 && commonTags.size)
-        params.tags = [...commonTags];
-    else
-        params.suites = selectedSuites.map((suite) => suite.name);
+    if (selectedSuites.length > 1 && commonTags.size) params.tags = [...commonTags];
+    else params.suites = selectedSuites.map((suite) => suite.name);
 }
 
 function updateURL() {
@@ -301,6 +300,5 @@ function updateURL() {
     const url = new URL(window.location.href);
     url.search = params.toSearchParams();
     // Only push state if changed
-    if (url.href !== window.location.href)
-        window.history.pushState({}, "", url);
+    if (url.href !== window.location.href) window.history.pushState({}, "", url);
 }
