@@ -117,5 +117,13 @@ describe("Params", () => {
             );
             expect(params.waitAfterSetup).to.equal(1000);
         });
+        it("should parse custom waitAfterSuite", () => {
+            const params = new Params(
+                new URLSearchParams({
+                    waitAfterSuite: "1000",
+                })
+            );
+            expect(params.waitAfterSuite).to.equal(1000);
+        });
     });
 });
