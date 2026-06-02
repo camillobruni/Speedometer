@@ -34,15 +34,6 @@ describe("Params", () => {
             );
             expect(params.toSearchParams()).to.equal("iterationCount=100");
         });
-        it("should not contain runner-only parameters like waitAfterSetup and waitAfterSuite", () => {
-            const params = new Params(
-                new URLSearchParams({
-                    waitAfterSetup: "100",
-                    waitAfterSuite: "200",
-                })
-            );
-            expect(params.toSearchParams()).to.equal("");
-        });
         it("should contain single suite", () => {
             const params = new Params(
                 new URLSearchParams({

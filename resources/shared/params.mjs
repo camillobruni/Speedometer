@@ -182,8 +182,8 @@ export class Params {
     toSearchParamsObject(filter = true) {
         const rawUrlParams = { __proto__: null };
         for (const [key, value] of Object.entries(this)) {
-            // Handle composite and runner-specific values separately.
-            if (key === "viewport" || key === "suites" || key === "tags" || key === "waitAfterSetup" || key === "waitAfterSuite")
+            // Handle composite values separately.
+            if (key === "viewport" || key === "suites" || key === "tags")
                 continue;
             // Skip over default values.
             if (filter && value === defaultParams[key])
