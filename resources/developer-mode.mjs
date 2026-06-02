@@ -28,7 +28,6 @@ export function createDeveloperModeContainer() {
     settings.append(createUIForWaitAfterSuite());
     settings.append(createUIForAsyncSteps());
     settings.append(createUIForLayoutMode());
-    settings.append(createUIForMeasurePrepare());
 
     content.append(document.createElement("hr"));
     content.append(settings);
