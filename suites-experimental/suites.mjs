@@ -1,4 +1,4 @@
-import { BenchmarkTestStep } from "../resources/benchmark-runner.mjs";
+import { AsyncBenchmarkTestStep, BenchmarkTestStep } from "../resources/benchmark-runner.mjs";
 import { getTodoText } from "../resources/shared/translations.mjs";
 import { numberOfItemsToAdd } from "../resources/shared/todomvc-utils.mjs";
 import { freezeSuites } from "../resources/suites-helper.mjs";
@@ -171,7 +171,7 @@ export const ExperimentalSuites = freezeSuites([
             await page.waitForElement("cooking-app");
         },
         tests: [
-            new BenchmarkTestStep("LoadChatAndExpandRecipes", async (page) => {
+            new AsyncBenchmarkTestStep("LoadChatAndExpandRecipes", async (page) => {
                 const resumePreviousChatBtn = page.querySelector("#resume-previous-chat-btn", ["cooking-app", "chat-window"]);
                 resumePreviousChatBtn.click();
                 page.layout();
@@ -190,7 +190,7 @@ export const ExperimentalSuites = freezeSuites([
                     page.layout();
                 }
             }),
-            new BenchmarkTestStep("ReduceWidthIn5Steps", async (page) => {
+            new AsyncBenchmarkTestStep("ReduceWidthIn5Steps", async (page) => {
                 const widths = [768, 704, 640, 560, 480];
                 const MATCH_MEDIA_QUERY_BREAKPOINT = 640;
 
@@ -210,7 +210,7 @@ export const ExperimentalSuites = freezeSuites([
 
                 await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
             }),
-            new BenchmarkTestStep("ScrollToChatAndSendMessages", async (page) => {
+            new AsyncBenchmarkTestStep("ScrollToChatAndSendMessages", async (page) => {
                 const cvWorkComplete = new Promise((resolve) => {
                     page.addEventListener("video-grid-content-visibility-complete", resolve, { once: true });
                 });
@@ -249,7 +249,7 @@ export const ExperimentalSuites = freezeSuites([
                 // fallback once Speedometer CI runs a Safari with that WebKit fix.
                 await Promise.race([cvWorkComplete, new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))]);
             }),
-            new BenchmarkTestStep("IncreaseWidthIn5Steps", async (page) => {
+            new AsyncBenchmarkTestStep("IncreaseWidthIn5Steps", async (page) => {
                 const widths = [560, 640, 704, 768, 800];
                 const MATCH_MEDIA_QUERY_BREAKPOINT = 704;
 

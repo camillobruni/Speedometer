@@ -1,4 +1,4 @@
-import { BenchmarkStep, BenchmarkSuite } from "./speedometer-utils/benchmark.mjs";
+import { AsyncBenchmarkStep, BenchmarkSuite } from "./speedometer-utils/benchmark.mjs";
 import { getTodoText, defaultLanguage } from "./speedometer-utils/translations.mjs";
 import { numberOfItemsToAdd } from "./speedometer-utils/todomvc-utils.mjs";
 
@@ -24,7 +24,7 @@ const deletePromise = new Promise((resolve) => {
 
 const suites = {
     default: new BenchmarkSuite("indexeddb", [
-        new BenchmarkStep(`Adding${numberOfItemsToAdd}Items`, async () => {
+        new AsyncBenchmarkStep(`Adding${numberOfItemsToAdd}Items`, async () => {
             const input = document.querySelector("todo-app").shadowRoot.querySelector("todo-topbar").shadowRoot.querySelector(".new-todo-input");
             for (let i = 0; i < numberOfItemsToAdd; i++) {
                 input.value = getTodoText(defaultLanguage, i);
@@ -32,14 +32,14 @@ const suites = {
                 input.dispatchEvent(new KeyboardEvent("keyup", { key: "Enter" }));
             }
         }),
-        new BenchmarkStep(
+        new AsyncBenchmarkStep(
             "FinishAddingItemsToDB",
             async () => {
                 await addPromise;
             },
             /* ignoreResult = */ true
         ),
-        new BenchmarkStep("CompletingAllItems", async () => {
+        new AsyncBenchmarkStep("CompletingAllItems", async () => {
             const numberOfItemsPerIteration = 10;
             const numberOfIterations = 10;
             for (let j = 0; j < numberOfIterations; j++) {
@@ -55,14 +55,14 @@ const suites = {
                 }
             }
         }),
-        new BenchmarkStep(
+        new AsyncBenchmarkStep(
             "FinishModifyingItemsInDB",
             async () => {
                 await togglePromise;
             },
             /* ignoreResult = */ true
         ),
-        new BenchmarkStep("DeletingAllItems", async () => {
+        new AsyncBenchmarkStep("DeletingAllItems", async () => {
             const numberOfItemsPerIteration = 10;
             const numberOfIterations = 10;
             function iterationFinishedListener() {
@@ -86,7 +86,7 @@ const suites = {
                 }
             }
         }),
-        new BenchmarkStep(
+        new AsyncBenchmarkStep(
             "FinishDeletingItemsFromDB",
             async () => {
                 await deletePromise;
