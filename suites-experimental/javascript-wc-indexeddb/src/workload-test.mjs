@@ -1,4 +1,4 @@
-import { BenchmarkStep, BenchmarkSuite } from "./speedometer-utils/benchmark.mjs";
+import { BenchmarkStep, BenchmarkSuite } from "/node_modules/speedometer-utils/benchmark.mjs";
 import { getTodoText, defaultLanguage } from "/node_modules/speedometer-utils/translations.mjs";
 import { numberOfItemsToAdd } from "/node_modules/speedometer-utils/todomvc-utils.mjs";
 

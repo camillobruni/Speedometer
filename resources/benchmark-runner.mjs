@@ -9,6 +9,28 @@ export class BenchmarkTestStep {
     constructor(testName, testFunction) {
         this.name = testName;
         this.run = testFunction;
+        this.isAsyncStep = false;
+    }
+
+    formatResult(syncTime, asyncTime) {
+        const total = syncTime + asyncTime;
+        return {
+            tests: { Sync: syncTime, Async: asyncTime },
+            total: total,
+        };
+    }
+}
+
+export class AsyncBenchmarkTestStep extends BenchmarkTestStep {
+    constructor(testName, testFunction) {
+        super(testName, testFunction);
+        this.isAsyncStep = true;
+    }
+
+    formatResult(syncTime, asyncTime) {
+        return {
+            total: syncTime + asyncTime,
+        };
     }
 }
 
@@ -468,7 +490,7 @@ export class BenchmarkRunner {
             }
 
             values.sort((a, b) => a - b); // Avoid the loss of significance for the sum.
-            const total = values.reduce((a, b) => a + b);
+            const total = values.reduce((a, b) => a + b, 0);
             const geomean = Math.pow(product, 1 / values.length);
 
             this._measuredValues.total = total;

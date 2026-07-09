@@ -1,4 +1,4 @@
-import { BenchmarkConnector } from "/src/speedometer-utils/benchmark.mjs";
+import { BenchmarkConnector } from "/node_modules/speedometer-utils/benchmark.mjs";
 import suites, { appName, appVersion } from "/src/workload-test.mjs";
 
 window.addEventListener("db-ready", () => {

@@ -85,7 +85,7 @@ export class SuiteRunner {
             if (this.#client?.willRunTest)
                 await this.#client.willRunTest(this.#suite, step);
 
-            const stepRunnerType = this.#suite.type ?? this.params.useAsyncSteps ? "async" : "default";
+            const stepRunnerType = this.params.useAsyncSteps || step?.isAsyncStep ? "async" : this.#suite.type ?? "default";
             const stepRunnerClass = STEP_RUNNER_LOOKUP[stepRunnerType];
             const stepRunner = new stepRunnerClass(this.#frame, this.#page, this.#params, this.#suite, step, this._recordTestResults, stepRunnerType);
             await stepRunner.runStep();
@@ -103,7 +103,7 @@ export class SuiteRunner {
         // When the test is fast and the precision is low (for example with Firefox'
         // privacy.resistFingerprinting preference), it's possible that the measured
         // total duration for an entire is 0.
-        const { suiteTotal, suitePrepare } = this.#suiteResults.total;
+        const { total: suiteTotal, prepare: suitePrepare } = this.#suiteResults;
         if (suiteTotal === 0)
             throw new Error(`Got invalid 0-time total for suite ${this.#suite.name}: ${suiteTotal}`);
         if (this.#params.measurePrepare && suitePrepare === 0)
@@ -124,16 +124,15 @@ export class SuiteRunner {
 
     _recordTestResults = async (step, syncTime, asyncTime) => {
         // Skip reporting updates for the warmup suite.
-        if (this.#suite === WarmupSuite)
+        if (this.#suite === WarmupSuite || step?.ignoreResult)
             return;
 
-        let total = syncTime + asyncTime;
-        this.#suiteResults.tests[step.name] = {
-            tests: { Sync: syncTime, Async: asyncTime },
-            total: total,
-        };
+        const total = syncTime + asyncTime;
+        const fallbackResults = step?.isAsyncStep ? { total } : { tests: { Sync: syncTime, Async: asyncTime }, total };
+        const stepResults = step?.formatResult ? step.formatResult(syncTime, asyncTime) : fallbackResults;
+        this.#suiteResults.tests[step.name] = stepResults;
         this.#suiteResults.prepare = this.#prepareTime;
-        this.#suiteResults.total = total;
+        this.#suiteResults.total += stepResults.total || 0;
     };
 
     async _updateClient(suite = this.#suite) {

@@ -1,5 +1,5 @@
 /* eslint-disable no-case-declarations */
-import { TestRunner } from "./test-runner.mjs";
+import { StepRunner } from "./step-runner.mjs";
 import { Params } from "./params.mjs";
 
 /**
@@ -8,15 +8,42 @@ import { Params } from "./params.mjs";
  * A single test step, with a common interface to interact with.
  */
 export class BenchmarkStep {
-    constructor(name, run) {
+    constructor(name, run, ignoreResult = false) {
         this.name = name;
         this.run = run;
+        this.ignoreResult = ignoreResult;
+        this.isAsyncStep = false;
     }
 
-    async runAndRecord(params, suite, test, callback) {
-        const testRunner = new TestRunner(null, null, params, suite, test, callback);
-        const result = await testRunner.runTest();
+    formatResult(syncTime, asyncTime) {
+        const total = syncTime + asyncTime;
+        return {
+            tests: { Sync: syncTime, Async: asyncTime },
+            total: total,
+        };
+    }
+
+    async runAndRecordStep(params, suite, step, callback) {
+        const stepRunner = new StepRunner(null, null, params, suite, step, callback);
+        const result = await stepRunner.runStep();
         return result;
+    }
+
+    async runAndRecord(params, suite, step, callback) {
+        return this.runAndRecordStep(params, suite, step, callback);
+    }
+}
+
+export class AsyncBenchmarkStep extends BenchmarkStep {
+    constructor(name, run, ignoreResult = false) {
+        super(name, run, ignoreResult);
+        this.isAsyncStep = true;
+    }
+
+    formatResult(syncTime, asyncTime) {
+        return {
+            total: syncTime + asyncTime,
+        };
     }
 }
 
@@ -26,13 +53,23 @@ export class BenchmarkStep {
  * A single test suite that contains one or more test steps.
  */
 export class BenchmarkSuite {
-    constructor(name, tests) {
+    constructor(name, steps) {
         this.name = name;
-        this.tests = tests;
+        this.steps = steps;
     }
 
-    record(_test, syncTime, asyncTime) {
+    record(step, syncTime, asyncTime) {
+        if (step?.formatResult)
+            return step.formatResult(syncTime, asyncTime);
+
         const total = syncTime + asyncTime;
+        if (step?.isAsyncStep) {
+            const results = {
+                total: total,
+            };
+            return results;
+        }
+
         const results = {
             tests: { Sync: syncTime, Async: asyncTime },
             total: total,
@@ -41,9 +78,10 @@ export class BenchmarkSuite {
         return results;
     }
 
-    async runAndRecord(params, onProgress) {
+    async runAndRecordSuite(params, onProgress) {
         const measuredValues = {
             tests: {},
+            prepare: 0,
             total: 0,
         };
         const suiteStartLabel = `suite-${this.name}-start`;
@@ -51,11 +89,13 @@ export class BenchmarkSuite {
 
         performance.mark(suiteStartLabel);
 
-        for (const test of this.tests) {
-            const result = await test.runAndRecord(params, this, test, this.record);
-            measuredValues.tests[test.name] = result;
-            measuredValues.total += result.total;
-            onProgress?.(test.name);
+        for (const step of this.steps) {
+            const result = await step.runAndRecordStep(params, this, step, this.record);
+            if (!step.ignoreResult) {
+                measuredValues.tests[step.name] = result;
+                measuredValues.total += result.total;
+            }
+            onProgress?.(step.name);
         }
 
         performance.mark(suiteEndLabel);
@@ -67,6 +107,10 @@ export class BenchmarkSuite {
             result: measuredValues,
             suitename: this.name,
         };
+    }
+
+    async runAndRecord(params, onProgress) {
+        return this.runAndRecordSuite(params, onProgress);
     }
 }
 
@@ -101,9 +145,11 @@ export class BenchmarkConnector {
             case "benchmark-suite":
                 const params = new Params(new URLSearchParams(window.location.search));
                 const suite = this.suites[event.data.name];
-                if (!suite)
+                if (!suite) {
                     console.error(`Suite with the name of "${event.data.name}" not found!`);
-                const { result } = await suite.runAndRecord(params, (test) => this.sendMessage({ type: "step-complete", status: "success", appId: this.appId, name: this.name, test }));
+                    return;
+                }
+                const { result } = await suite.runAndRecordSuite(params, (test) => this.sendMessage({ type: "step-complete", status: "success", appId: this.appId, name: this.name, test }));
                 this.sendMessage({ type: "suite-complete", status: "success", appId: this.appId, result });
                 this.disconnect();
                 break;
