@@ -12,7 +12,10 @@ export class BenchmarkStep {
         this.name = name;
         this.run = run;
         this.ignoreResult = ignoreResult;
-        this.isAsyncStep = false;
+    }
+
+    getRunnerType(suiteType) {
+        return suiteType ?? "default";
     }
 
     formatResult(syncTime, asyncTime) {
@@ -24,7 +27,8 @@ export class BenchmarkStep {
     }
 
     async runAndRecordStep(params, suite, step, callback) {
-        const stepRunner = new StepRunner(null, null, params, suite, step, callback);
+        const stepRunnerType = params.useAsyncSteps ? "async" : step.getRunnerType(suite.type);
+        const stepRunner = new StepRunner(null, null, params, suite, step, callback, stepRunnerType);
         const result = await stepRunner.runStep();
         return result;
     }
@@ -33,7 +37,10 @@ export class BenchmarkStep {
 export class AsyncBenchmarkStep extends BenchmarkStep {
     constructor(name, run, ignoreResult = false) {
         super(name, run, ignoreResult);
-        this.isAsyncStep = true;
+    }
+
+    getRunnerType(suiteType) {
+        return "async";
     }
 
     formatResult(syncTime, asyncTime) {

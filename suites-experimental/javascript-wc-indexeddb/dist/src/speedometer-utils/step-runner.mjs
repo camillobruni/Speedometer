@@ -90,7 +90,7 @@ export class StepRunner {
         };
 
         const report = () => this.#callback(this.#step, syncTime, asyncTime);
-        const schedulerType = this.#suite.type === "async" || this.#params.useAsyncSteps ? "async" : this.#params.measurementMethod;
+        const schedulerType = this.#type === "async" || this.#suite.type === "async" || this.#params.useAsyncSteps ? "async" : this.#params.measurementMethod;
         const schedulerClass = STEP_SCHEDULER_LOOKUP[schedulerType];
         const scheduler = new schedulerClass(runSync, measureAsync, report, this.#params);
 

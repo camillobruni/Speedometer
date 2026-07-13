@@ -258,6 +258,7 @@ describe("BenchmarkRunner", () => {
     describe("Step formatting (Polymorphic formatResult)", () => {
         it("BenchmarkStep should include tests with Sync and Async times", () => {
             const step = new BenchmarkStep("test", () => {});
+            expect(step.getRunnerType("default")).to.equal("default");
             const result = step.formatResult(10, 5);
             expect(result.total).to.equal(15);
             expect(result.tests.Sync).to.equal(10);
@@ -266,7 +267,7 @@ describe("BenchmarkRunner", () => {
 
         it("AsyncBenchmarkStep should only include total without tests property", () => {
             const step = new AsyncBenchmarkStep("asyncTest", async () => {});
-            expect(step.isAsyncStep).to.be(true);
+            expect(step.getRunnerType("default")).to.equal("async");
             const result = step.formatResult(10, 5);
             expect(result.total).to.equal(15);
             expect(result.tests).to.be(undefined);
@@ -274,6 +275,7 @@ describe("BenchmarkRunner", () => {
 
         it("BenchmarkTestStep should include tests with Sync and Async times", () => {
             const step = new BenchmarkTestStep("test", () => {});
+            expect(step.getRunnerType("default")).to.equal("default");
             const result = step.formatResult(12, 8);
             expect(result.total).to.equal(20);
             expect(result.tests.Sync).to.equal(12);
@@ -282,7 +284,7 @@ describe("BenchmarkRunner", () => {
 
         it("AsyncBenchmarkTestStep should only include total without tests property", () => {
             const step = new AsyncBenchmarkTestStep("asyncTest", async () => {});
-            expect(step.isAsyncStep).to.be(true);
+            expect(step.getRunnerType("default")).to.equal("async");
             const result = step.formatResult(12, 8);
             expect(result.total).to.equal(20);
             expect(result.tests).to.be(undefined);

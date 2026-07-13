@@ -9,7 +9,10 @@ export class BenchmarkTestStep {
     constructor(testName, testFunction) {
         this.name = testName;
         this.run = testFunction;
-        this.isAsyncStep = false;
+    }
+
+    getRunnerType(suiteType) {
+        return suiteType ?? "default";
     }
 
     formatResult(syncTime, asyncTime) {
@@ -24,7 +27,10 @@ export class BenchmarkTestStep {
 export class AsyncBenchmarkTestStep extends BenchmarkTestStep {
     constructor(testName, testFunction) {
         super(testName, testFunction);
-        this.isAsyncStep = true;
+    }
+
+    getRunnerType(suiteType) {
+        return "async";
     }
 
     formatResult(syncTime, asyncTime) {
