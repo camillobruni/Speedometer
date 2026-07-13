@@ -122,12 +122,11 @@ export class SuiteRunner {
         });
     }
 
-    _recordTestResults = async (step, syncTimeOrStepResults, asyncTime) => {
+    _recordTestResults = async (step, stepResults) => {
         // Skip reporting updates for the warmup suite.
-        if (this.#suite === WarmupSuite || step?.ignoreResult || !syncTimeOrStepResults)
+        if (this.#suite === WarmupSuite || step?.ignoreResult || !stepResults)
             return;
 
-        const stepResults = typeof syncTimeOrStepResults === "number" ? step.formatResult(syncTimeOrStepResults, asyncTime ?? 0) : syncTimeOrStepResults;
         this.#suiteResults.tests[step.name] = stepResults;
         this.#suiteResults.prepare = this.#prepareTime;
         this.#suiteResults.total += stepResults?.total || 0;

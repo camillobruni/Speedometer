@@ -299,7 +299,7 @@ describe("BenchmarkRunner", () => {
             const suite = { name: "TestSuite", tests: [step] };
             const measuredValues = { tests: {} };
             const suiteRunner = new SuiteRunner(null, null, defaultParams, suite, null, measuredValues);
-            await suiteRunner._recordTestResults(step, 10, 5);
+            await suiteRunner._recordTestResults(step, step.formatResult(10, 5));
             const stepResult = measuredValues.tests.TestSuite.tests.RegularTestStep;
             expect(stepResult).to.eql({
                 tests: { Sync: 10, Async: 5 },
@@ -312,7 +312,7 @@ describe("BenchmarkRunner", () => {
             const suite = { name: "TestSuite", tests: [step] };
             const measuredValues = { tests: {} };
             const suiteRunner = new SuiteRunner(null, null, defaultParams, suite, null, measuredValues);
-            await suiteRunner._recordTestResults(step, 10, 5);
+            await suiteRunner._recordTestResults(step, step.formatResult(10, 5));
             const stepResult = measuredValues.tests.TestSuite.tests.AsyncTestStep;
             expect(stepResult).to.eql({
                 total: 15,
@@ -326,8 +326,8 @@ describe("BenchmarkRunner", () => {
             const suite = { name: "MultiStepSuite", tests: [step1, step2] };
             const measuredValues = { tests: {} };
             const suiteRunner = new SuiteRunner(null, null, defaultParams, suite, null, measuredValues);
-            await suiteRunner._recordTestResults(step1, 10, 5);
-            await suiteRunner._recordTestResults(step2, 20, 15);
+            await suiteRunner._recordTestResults(step1, step1.formatResult(10, 5));
+            await suiteRunner._recordTestResults(step2, step2.formatResult(20, 15));
             expect(measuredValues.tests.MultiStepSuite.total).to.equal(50);
         });
     });

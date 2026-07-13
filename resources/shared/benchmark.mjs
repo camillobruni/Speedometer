@@ -31,9 +31,6 @@ export class BenchmarkStep {
 }
 
 export class AsyncBenchmarkStep extends BenchmarkStep {
-    constructor(name, run, ignoreResult = false) {
-        super(name, run, ignoreResult);
-    }
 
     formatResult(syncTime, asyncTime) {
         return {

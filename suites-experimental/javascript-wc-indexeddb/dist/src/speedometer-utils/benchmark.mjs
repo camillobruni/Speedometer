@@ -31,9 +31,6 @@ export class BenchmarkStep {
 }
 
 export class AsyncBenchmarkStep extends BenchmarkStep {
-    constructor(name, run, ignoreResult = false) {
-        super(name, run, ignoreResult);
-    }
 
     formatResult(syncTime, asyncTime) {
         return {
@@ -101,14 +98,16 @@ export class BenchmarkConnector {
         this.name = name;
         this.version = version;
 
-        if (!name || !version) console.warn("No name or version supplied, to create a unique appId");
+        if (!name || !version)
+            console.warn("No name or version supplied, to create a unique appId");
 
         this.appId = name && version ? `${name}-${version}` : -1;
         this.onMessage = this.onMessage.bind(this);
     }
 
     async onMessage(event) {
-        if (event.data.id !== this.appId || event.data.key !== "benchmark-connector") return;
+        if (event.data.id !== this.appId || event.data.key !== "benchmark-connector")
+            return;
 
         switch (event.data.type) {
             case "benchmark-suite":
