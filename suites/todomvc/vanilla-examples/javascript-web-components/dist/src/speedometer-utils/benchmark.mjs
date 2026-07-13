@@ -59,23 +59,7 @@ export class BenchmarkSuite {
     }
 
     record(step, syncTime, asyncTime) {
-        if (step?.formatResult)
-            return step.formatResult(syncTime, asyncTime);
-
-        const total = syncTime + asyncTime;
-        if (step?.isAsyncStep) {
-            const results = {
-                total: total,
-            };
-            return results;
-        }
-
-        const results = {
-            tests: { Sync: syncTime, Async: asyncTime },
-            total: total,
-        };
-
-        return results;
+        return step.formatResult(syncTime, asyncTime);
     }
 
     async runAndRecordSuite(params, onProgress) {

@@ -5,10 +5,7 @@ import { defaultParams } from "../../resources/shared/params.mjs";
 import { BenchmarkStep, AsyncBenchmarkStep, BenchmarkSuite } from "../../resources/shared/benchmark.mjs";
 
 function TEST_FIXTURE(name) {
-    return {
-        name,
-        run: sinon.stub(),
-    };
+    return new BenchmarkTestStep(name, sinon.stub());
 }
 
 const SUITES_FIXTURE = [
@@ -363,27 +360,6 @@ describe("BenchmarkRunner", () => {
             await suiteRunner._recordTestResults(step1, 10, 5);
             await suiteRunner._recordTestResults(step2, 20, 15);
             expect(measuredValues.tests.MultiStepSuite.total).to.equal(50);
-        });
-
-        it("should use fallback path in BenchmarkSuite.record when formatResult is missing", () => {
-            const suite = new BenchmarkSuite("TestSuite", []);
-            const mockAsyncStep = { name: "MockAsync", isAsyncStep: true };
-            const mockSyncStep = { name: "MockSync", isAsyncStep: false };
-            expect(suite.record(mockAsyncStep, 10, 5)).to.eql({ total: 15 });
-            expect(suite.record(mockSyncStep, 10, 5)).to.eql({ tests: { Sync: 10, Async: 5 }, total: 15 });
-        });
-
-        it("should use fallback path in SuiteRunner._recordTestResults when formatResult is missing", async () => {
-            const mockAsyncStep = { name: "MockAsync", isAsyncStep: true };
-            const mockSyncStep = { name: "MockSync", isAsyncStep: false };
-            const suite = { name: "TestSuite", tests: [mockAsyncStep, mockSyncStep] };
-            const measuredValues = { tests: {} };
-            const suiteRunner = new SuiteRunner(null, null, defaultParams, suite, null, measuredValues);
-            await suiteRunner._recordTestResults(mockAsyncStep, 10, 5);
-            await suiteRunner._recordTestResults(mockSyncStep, 20, 10);
-            expect(measuredValues.tests.TestSuite.tests.MockAsync).to.eql({ total: 15 });
-            expect(measuredValues.tests.TestSuite.tests.MockSync).to.eql({ tests: { Sync: 20, Async: 10 }, total: 30 });
-            expect(measuredValues.tests.TestSuite.total).to.equal(45);
         });
     });
 });

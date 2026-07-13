@@ -127,9 +127,7 @@ export class SuiteRunner {
         if (this.#suite === WarmupSuite || step?.ignoreResult)
             return;
 
-        const total = syncTime + asyncTime;
-        const fallbackResults = step?.isAsyncStep ? { total } : { tests: { Sync: syncTime, Async: asyncTime }, total };
-        const stepResults = step?.formatResult ? step.formatResult(syncTime, asyncTime) : fallbackResults;
+        const stepResults = step.formatResult(syncTime, asyncTime);
         this.#suiteResults.tests[step.name] = stepResults;
         this.#suiteResults.prepare = this.#prepareTime;
         this.#suiteResults.total += stepResults.total || 0;
