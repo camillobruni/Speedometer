@@ -1,8 +1,8 @@
 import { BenchmarkRunner, BenchmarkTestStep, AsyncBenchmarkTestStep } from "../../resources/benchmark-runner.mjs";
 import { SuiteRunner } from "../../resources/suite-runner.mjs";
-import { StepRunner } from "../../resources/shared/step-runner.mjs";
+import { StepRunner, STEP_RUNNER_LOOKUP, lookUpStepRunnerClass } from "../../resources/shared/step-runner.mjs";
 import { defaultParams } from "../../resources/shared/params.mjs";
-import { BenchmarkStep, AsyncBenchmarkStep, BenchmarkSuite } from "../../resources/shared/benchmark.mjs";
+import { BenchmarkStep, AsyncBenchmarkStep } from "../../resources/shared/benchmark.mjs";
 
 function TEST_FIXTURE(name) {
     return new BenchmarkTestStep(name, sinon.stub());
@@ -286,43 +286,14 @@ describe("BenchmarkRunner", () => {
             expect(result.tests).to.be(undefined);
         });
 
-        it("BenchmarkSuite.record should use step.formatResult", () => {
-            const suite = new BenchmarkSuite("Suite", []);
-            const syncStep = new BenchmarkStep("sync", () => {});
-            const asyncStep = new AsyncBenchmarkStep("async", () => {});
-
-            const syncResult = suite.record(syncStep, 10, 2);
-            expect(syncResult.total).to.equal(12);
-            expect(syncResult.tests.Sync).to.equal(10);
-            expect(syncResult.tests.Async).to.equal(2);
-
-            const asyncResult = suite.record(asyncStep, 10, 2);
-            expect(asyncResult.total).to.equal(12);
-            expect(asyncResult.tests).to.be(undefined);
+        it("lookUpStepRunnerClass should return correct runner class based on suite and params", () => {
+            expect(lookUpStepRunnerClass({ type: "default" }, {})).to.equal(STEP_RUNNER_LOOKUP.default);
+            expect(lookUpStepRunnerClass({ type: "async" }, {})).to.equal(STEP_RUNNER_LOOKUP.async);
+            expect(lookUpStepRunnerClass({ type: "default" }, { useAsyncSteps: true })).to.equal(STEP_RUNNER_LOOKUP.async);
         });
     });
 
     describe("Step and TestStep Recording", () => {
-        it("should record { tests: { Sync, Async }, total } for regular BenchmarkStep", () => {
-            const step = new BenchmarkStep("RegularStep", () => {});
-            const suite = new BenchmarkSuite("TestSuite", [step]);
-            const result = suite.record(step, 10, 5);
-            expect(result).to.eql({
-                tests: { Sync: 10, Async: 5 },
-                total: 15,
-            });
-        });
-
-        it("should record { total } without .tests for AsyncBenchmarkStep", () => {
-            const step = new AsyncBenchmarkStep("AsyncStep", async () => {});
-            const suite = new BenchmarkSuite("TestSuite", [step]);
-            const result = suite.record(step, 10, 5);
-            expect(result).to.eql({
-                total: 15,
-            });
-            expect(result.tests).to.be(undefined);
-        });
-
         it("should record { tests: { Sync, Async }, total } for regular BenchmarkTestStep via SuiteRunner", async () => {
             const step = new BenchmarkTestStep("RegularTestStep", () => {});
             const suite = { name: "TestSuite", tests: [step] };
@@ -358,33 +329,6 @@ describe("BenchmarkRunner", () => {
             await suiteRunner._recordTestResults(step1, 10, 5);
             await suiteRunner._recordTestResults(step2, 20, 15);
             expect(measuredValues.tests.MultiStepSuite.total).to.equal(50);
-        });
-
-        it("should throw an error when AsyncBenchmarkTestStep is placed inside a non-async suite", async () => {
-            const step = new AsyncBenchmarkTestStep("AsyncTestStep", async () => {});
-            const suite = { name: "NonAsyncSuite", type: "default", tests: [step] };
-            const suiteRunner = new SuiteRunner(null, null, defaultParams, suite, null, { tests: {} });
-            let errorThrown = false;
-            try {
-                await suiteRunner._runSuite();
-            } catch (error) {
-                errorThrown = true;
-                expect(error.message).to.contain("cannot be placed inside non-async suite");
-            }
-            expect(errorThrown).to.be(true);
-        });
-
-        it("should throw an error when AsyncBenchmarkStep is placed inside a non-async BenchmarkSuite", async () => {
-            const step = new AsyncBenchmarkStep("AsyncStep", async () => {});
-            const suite = new BenchmarkSuite("NonAsyncSuite", [step]);
-            let errorThrown = false;
-            try {
-                await suite.runAndRecordSuite(defaultParams, () => {});
-            } catch (error) {
-                errorThrown = true;
-                expect(error.message).to.contain("cannot be placed inside non-async suite");
-            }
-            expect(errorThrown).to.be(true);
         });
     });
 });

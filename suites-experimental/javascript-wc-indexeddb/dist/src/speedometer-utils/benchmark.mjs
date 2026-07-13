@@ -1,5 +1,5 @@
 /* eslint-disable no-case-declarations */
-import { StepRunner } from "./step-runner.mjs";
+import { lookUpStepRunnerClass } from "./step-runner.mjs";
 import { Params } from "./params.mjs";
 
 /**
@@ -22,9 +22,9 @@ export class BenchmarkStep {
         };
     }
 
-    async runAndRecordStep(params, suite, step, callback) {
-        const stepRunnerType = params.useAsyncSteps || suite?.type === "async" ? "async" : undefined;
-        const stepRunner = new StepRunner(null, null, params, suite, step, callback, stepRunnerType);
+    async runAndRecordStep(params, suite) {
+        const stepRunnerClass = lookUpStepRunnerClass(suite, params);
+        const stepRunner = new stepRunnerClass(null, null, params, suite, this);
         const result = await stepRunner.runStep();
         return result;
     }
@@ -53,10 +53,6 @@ export class BenchmarkSuite {
         this.steps = steps;
     }
 
-    record(step, syncTime, asyncTime) {
-        return step.formatResult(syncTime, asyncTime);
-    }
-
     async runAndRecordSuite(params, onProgress) {
         const measuredValues = {
             tests: {},
@@ -69,9 +65,7 @@ export class BenchmarkSuite {
         performance.mark(suiteStartLabel);
 
         for (const step of this.steps) {
-            if (step instanceof AsyncBenchmarkStep && this.type !== "async" && !params.useAsyncSteps)
-                throw new Error(`Async step "${step.name}" cannot be placed inside non-async suite "${this.name}".`);
-            const result = await step.runAndRecordStep(params, this, step, this.record);
+            const result = await step.runAndRecordStep(params, this);
             if (!step.ignoreResult) {
                 measuredValues.tests[step.name] = result;
                 measuredValues.total += result.total;
@@ -107,16 +101,14 @@ export class BenchmarkConnector {
         this.name = name;
         this.version = version;
 
-        if (!name || !version)
-            console.warn("No name or version supplied, to create a unique appId");
+        if (!name || !version) console.warn("No name or version supplied, to create a unique appId");
 
         this.appId = name && version ? `${name}-${version}` : -1;
         this.onMessage = this.onMessage.bind(this);
     }
 
     async onMessage(event) {
-        if (event.data.id !== this.appId || event.data.key !== "benchmark-connector")
-            return;
+        if (event.data.id !== this.appId || event.data.key !== "benchmark-connector") return;
 
         switch (event.data.type) {
             case "benchmark-suite":

@@ -1,5 +1,5 @@
-import { STEP_RUNNER_LOOKUP } from "./shared/step-runner.mjs";
-import { WarmupSuite, AsyncBenchmarkTestStep } from "./benchmark-runner.mjs";
+import { lookUpStepRunnerClass } from "./shared/step-runner.mjs";
+import { WarmupSuite } from "./benchmark-runner.mjs";
 
 function delay(ms) {
     if (ms > 0)
@@ -82,16 +82,13 @@ export class SuiteRunner {
 
         performance.mark(suiteStartLabel);
         for (const step of this.#suite.tests) {
-            if (step instanceof AsyncBenchmarkTestStep && this.#suite.type !== "async" && !this.params.useAsyncSteps)
-                throw new Error(`Async step "${step.name}" cannot be placed inside non-async suite "${this.#suite.name}".`);
-
             if (this.#client?.willRunTest)
                 await this.#client.willRunTest(this.#suite, step);
 
-            const stepRunnerType = this.params.useAsyncSteps || this.#suite.type === "async" ? "async" : this.#suite.type ?? "default";
-            const stepRunnerClass = STEP_RUNNER_LOOKUP[stepRunnerType];
-            const stepRunner = new stepRunnerClass(this.#frame, this.#page, this.#params, this.#suite, step, this._recordTestResults, stepRunnerType);
-            await stepRunner.runStep();
+            const stepRunnerClass = lookUpStepRunnerClass(this.#suite, this.params);
+            const stepRunner = new stepRunnerClass(this.#frame, this.#page, this.#params, this.#suite, step);
+            const stepResults = await stepRunner.runStep();
+            await this._recordTestResults(step, stepResults);
         }
         performance.mark(suiteEndLabel);
 
@@ -125,15 +122,15 @@ export class SuiteRunner {
         });
     }
 
-    _recordTestResults = async (step, syncTime, asyncTime) => {
+    _recordTestResults = async (step, syncTimeOrStepResults, asyncTime) => {
         // Skip reporting updates for the warmup suite.
-        if (this.#suite === WarmupSuite || step?.ignoreResult)
+        if (this.#suite === WarmupSuite || step?.ignoreResult || !syncTimeOrStepResults)
             return;
 
-        const stepResults = step.formatResult(syncTime, asyncTime);
+        const stepResults = typeof syncTimeOrStepResults === "number" ? step.formatResult(syncTimeOrStepResults, asyncTime ?? 0) : syncTimeOrStepResults;
         this.#suiteResults.tests[step.name] = stepResults;
         this.#suiteResults.prepare = this.#prepareTime;
-        this.#suiteResults.total += stepResults.total || 0;
+        this.#suiteResults.total += stepResults?.total || 0;
     };
 
     async _updateClient(suite = this.#suite) {

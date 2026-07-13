@@ -10,11 +10,10 @@ export class StepRunner {
     #callback;
     #type;
 
-    constructor(frame, page, params, suite, step, callback, type) {
+    constructor(frame, page, params, suite, step, type) {
         this.#suite = suite;
         this.#step = step;
         this.#params = params;
-        this.#callback = callback;
         this.#page = page;
         this.#frame = frame;
         this.#type = type;
@@ -26,10 +25,6 @@ export class StepRunner {
 
     get step() {
         return this.#step;
-    }
-
-    _runSyncStep(step, page) {
-        step.run(page);
     }
 
     async runStep() {
@@ -49,17 +44,14 @@ export class StepRunner {
                 performance.mark("warmup-start");
                 const startTime = performance.now();
                 // Infinite loop for the specified ms.
-                while (performance.now() - startTime < this.#params.warmupBeforeSync)
-                    continue;
+                while (performance.now() - startTime < this.#params.warmupBeforeSync) continue;
                 performance.mark("warmup-end");
             }
             performance.mark(syncStartLabel);
             const syncStartTime = performance.now();
 
-            if (this.#type === "async")
-                await this._runSyncStep(this.step, this.page);
-            else
-                this._runSyncStep(this.step, this.page);
+            if (this.#type === "async") await this._runStep(this.step, this.page);
+            else this._runStep(this.step, this.page);
 
             const mark = performance.mark(syncEndLabel);
             const syncEndTime = mark.startTime;
@@ -83,27 +75,25 @@ export class StepRunner {
 
             asyncTime = asyncEndTime - asyncStartTime;
 
-            if (this.#params.warmupBeforeSync)
-                performance.measure("warmup", "warmup-start", "warmup-end");
+            if (this.#params.warmupBeforeSync) performance.measure("warmup", "warmup-start", "warmup-end");
             performance.measure(`${suiteName}.${stepName}-sync`, syncStartLabel, syncEndLabel);
             performance.measure(`${suiteName}.${stepName}-async`, syncEndLabel, asyncEndLabel);
         };
 
-        const report = () => this.#callback(this.#step, syncTime, asyncTime);
         const schedulerType = this.#suite.type === "async" || this.#params.useAsyncSteps ? "async" : this.#params.measurementMethod;
         const schedulerClass = STEP_SCHEDULER_LOOKUP[schedulerType];
-        const scheduler = new schedulerClass(runSync, measureAsync, report, this.#params);
+        const scheduler = new schedulerClass(runSync, measureAsync, this.#params);
+        await scheduler.start();
+        return this.#step.formatResult(syncTime, asyncTime);
+    }
 
-        return scheduler.start();
+    _runStep(step, page) {
+        step.run(page);
     }
 }
 
 export class AsyncStepRunner extends StepRunner {
-    constructor(frame, page, params, suite, step, callback, type) {
-        super(frame, page, params, suite, step, callback, type);
-    }
-
-    async _runSyncStep(step, page) {
+    async _runStep(step, page) {
         await step.run(page);
     }
 }
@@ -114,3 +104,8 @@ export const STEP_RUNNER_LOOKUP = {
     async: AsyncStepRunner,
     remote: StepRunner,
 };
+
+export function lookUpStepRunnerClass(suite, params) {
+    const stepRunnerType = params?.useAsyncSteps || suite?.type === "async" ? "async" : suite?.type ?? "default";
+    return STEP_RUNNER_LOOKUP[stepRunnerType];
+}
