@@ -21,10 +21,6 @@ export class BenchmarkTestStep {
 }
 
 export class AsyncBenchmarkTestStep extends BenchmarkTestStep {
-    constructor(testName, testFunction) {
-        super(testName, testFunction);
-    }
-
     formatResult(syncTime, asyncTime) {
         return {
             total: syncTime + asyncTime,
