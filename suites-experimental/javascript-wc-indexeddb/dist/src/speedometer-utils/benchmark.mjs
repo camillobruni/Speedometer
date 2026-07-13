@@ -14,10 +14,6 @@ export class BenchmarkStep {
         this.ignoreResult = ignoreResult;
     }
 
-    getRunnerType(suiteType) {
-        return suiteType ?? "default";
-    }
-
     formatResult(syncTime, asyncTime) {
         const total = syncTime + asyncTime;
         return {
@@ -27,7 +23,7 @@ export class BenchmarkStep {
     }
 
     async runAndRecordStep(params, suite, step, callback) {
-        const stepRunnerType = params.useAsyncSteps ? "async" : step.getRunnerType(suite.type);
+        const stepRunnerType = params.useAsyncSteps || suite?.type === "async" ? "async" : undefined;
         const stepRunner = new StepRunner(null, null, params, suite, step, callback, stepRunnerType);
         const result = await stepRunner.runStep();
         return result;
@@ -37,10 +33,6 @@ export class BenchmarkStep {
 export class AsyncBenchmarkStep extends BenchmarkStep {
     constructor(name, run, ignoreResult = false) {
         super(name, run, ignoreResult);
-    }
-
-    getRunnerType(suiteType) {
-        return "async";
     }
 
     formatResult(syncTime, asyncTime) {
@@ -77,6 +69,8 @@ export class BenchmarkSuite {
         performance.mark(suiteStartLabel);
 
         for (const step of this.steps) {
+            if (step instanceof AsyncBenchmarkStep && this.type !== "async" && !params.useAsyncSteps)
+                throw new Error(`Async step "${step.name}" cannot be placed inside non-async suite "${this.name}".`);
             const result = await step.runAndRecordStep(params, this, step, this.record);
             if (!step.ignoreResult) {
                 measuredValues.tests[step.name] = result;

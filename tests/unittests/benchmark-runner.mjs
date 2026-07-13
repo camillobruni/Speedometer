@@ -258,7 +258,6 @@ describe("BenchmarkRunner", () => {
     describe("Step formatting (Polymorphic formatResult)", () => {
         it("BenchmarkStep should include tests with Sync and Async times", () => {
             const step = new BenchmarkStep("test", () => {});
-            expect(step.getRunnerType("default")).to.equal("default");
             const result = step.formatResult(10, 5);
             expect(result.total).to.equal(15);
             expect(result.tests.Sync).to.equal(10);
@@ -267,7 +266,6 @@ describe("BenchmarkRunner", () => {
 
         it("AsyncBenchmarkStep should only include total without tests property", () => {
             const step = new AsyncBenchmarkStep("asyncTest", async () => {});
-            expect(step.getRunnerType("default")).to.equal("async");
             const result = step.formatResult(10, 5);
             expect(result.total).to.equal(15);
             expect(result.tests).to.be(undefined);
@@ -275,7 +273,6 @@ describe("BenchmarkRunner", () => {
 
         it("BenchmarkTestStep should include tests with Sync and Async times", () => {
             const step = new BenchmarkTestStep("test", () => {});
-            expect(step.getRunnerType("default")).to.equal("default");
             const result = step.formatResult(12, 8);
             expect(result.total).to.equal(20);
             expect(result.tests.Sync).to.equal(12);
@@ -284,7 +281,6 @@ describe("BenchmarkRunner", () => {
 
         it("AsyncBenchmarkTestStep should only include total without tests property", () => {
             const step = new AsyncBenchmarkTestStep("asyncTest", async () => {});
-            expect(step.getRunnerType("default")).to.equal("async");
             const result = step.formatResult(12, 8);
             expect(result.total).to.equal(20);
             expect(result.tests).to.be(undefined);
@@ -362,6 +358,33 @@ describe("BenchmarkRunner", () => {
             await suiteRunner._recordTestResults(step1, 10, 5);
             await suiteRunner._recordTestResults(step2, 20, 15);
             expect(measuredValues.tests.MultiStepSuite.total).to.equal(50);
+        });
+
+        it("should throw an error when AsyncBenchmarkTestStep is placed inside a non-async suite", async () => {
+            const step = new AsyncBenchmarkTestStep("AsyncTestStep", async () => {});
+            const suite = { name: "NonAsyncSuite", type: "default", tests: [step] };
+            const suiteRunner = new SuiteRunner(null, null, defaultParams, suite, null, { tests: {} });
+            let errorThrown = false;
+            try {
+                await suiteRunner._runSuite();
+            } catch (error) {
+                errorThrown = true;
+                expect(error.message).to.contain("cannot be placed inside non-async suite");
+            }
+            expect(errorThrown).to.be(true);
+        });
+
+        it("should throw an error when AsyncBenchmarkStep is placed inside a non-async BenchmarkSuite", async () => {
+            const step = new AsyncBenchmarkStep("AsyncStep", async () => {});
+            const suite = new BenchmarkSuite("NonAsyncSuite", [step]);
+            let errorThrown = false;
+            try {
+                await suite.runAndRecordSuite(defaultParams, () => {});
+            } catch (error) {
+                errorThrown = true;
+                expect(error.message).to.contain("cannot be placed inside non-async suite");
+            }
+            expect(errorThrown).to.be(true);
         });
     });
 });

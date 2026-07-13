@@ -11,10 +11,6 @@ export class BenchmarkTestStep {
         this.run = testFunction;
     }
 
-    getRunnerType(suiteType) {
-        return suiteType ?? "default";
-    }
-
     formatResult(syncTime, asyncTime) {
         const total = syncTime + asyncTime;
         return {
@@ -27,10 +23,6 @@ export class BenchmarkTestStep {
 export class AsyncBenchmarkTestStep extends BenchmarkTestStep {
     constructor(testName, testFunction) {
         super(testName, testFunction);
-    }
-
-    getRunnerType(suiteType) {
-        return "async";
     }
 
     formatResult(syncTime, asyncTime) {

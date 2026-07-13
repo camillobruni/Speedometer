@@ -1,5 +1,5 @@
 import { STEP_RUNNER_LOOKUP } from "./shared/step-runner.mjs";
-import { WarmupSuite } from "./benchmark-runner.mjs";
+import { WarmupSuite, AsyncBenchmarkTestStep } from "./benchmark-runner.mjs";
 
 function delay(ms) {
     if (ms > 0)
@@ -82,10 +82,13 @@ export class SuiteRunner {
 
         performance.mark(suiteStartLabel);
         for (const step of this.#suite.tests) {
+            if (step instanceof AsyncBenchmarkTestStep && this.#suite.type !== "async" && !this.params.useAsyncSteps)
+                throw new Error(`Async step "${step.name}" cannot be placed inside non-async suite "${this.#suite.name}".`);
+
             if (this.#client?.willRunTest)
                 await this.#client.willRunTest(this.#suite, step);
 
-            const stepRunnerType = this.params.useAsyncSteps ? "async" : step.getRunnerType(this.#suite.type);
+            const stepRunnerType = this.params.useAsyncSteps || this.#suite.type === "async" ? "async" : this.#suite.type ?? "default";
             const stepRunnerClass = STEP_RUNNER_LOOKUP[stepRunnerType];
             const stepRunner = new stepRunnerClass(this.#frame, this.#page, this.#params, this.#suite, step, this._recordTestResults, stepRunnerType);
             await stepRunner.runStep();
