@@ -110,6 +110,19 @@ async function testDeveloperMode() {
     });
 }
 
+async function testComplexity() {
+    const params = ["iterationCount=1", "complexity=0.3", "suites=TodoMVC-WebComponents"];
+    const metrics = await testPage(`index.html?${params.join("&")}`);
+    suites.forEach((suite) => {
+        if (suite.name === "TodoMVC-WebComponents") {
+            const metric = metrics[suite.name];
+            assert(metric.values.length === 1);
+        } else {
+            assert(!(suite.name in metrics));
+        }
+    });
+}
+
 async function test() {
     try {
         await testWithRetries(retry);
@@ -141,6 +154,7 @@ async function tryTests() {
     await testIterations();
     await testAll();
     await testDeveloperMode();
+    await testComplexity();
     console.log("\nTests complete!");
 }
 
