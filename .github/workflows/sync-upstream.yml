@@ -1,0 +1,37 @@
+name: Sync Fork with Upstream
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Runs automatically every day at midnight UTC
+  workflow_dispatch: # Adds a button to trigger the sync manually in the GitHub UI
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetches full history so the rebase/reset works
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sync with WebKit/Speedometer
+        run: |
+          # Set up git config for the bot
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          
+          # Add the upstream WebKit repository
+          git remote add upstream https://github.com/WebKit/Speedometer.git
+          
+          # Fetch the latest changes from upstream
+          git fetch upstream main
+          
+          # Ensure we are on the main branch
+          git checkout main
+          
+          # Hard reset to exactly match the upstream main branch
+          git reset --hard upstream/main
+          
+          # Force push to your fork
+          git push origin main --force
