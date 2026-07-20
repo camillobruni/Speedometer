@@ -13,7 +13,7 @@
         "tsc": "wireit",
         "rollup": "wireit",
         "copy-index-html": "wireit",
-        "build:resources": "wireit"
+        "build:resources": "node ../../../../resources/shared/generate-resources.mjs ./dist"
     },
     "devDependencies": {
         "@rollup/plugin-node-resolve": "^15.1.0",
@@ -55,8 +55,15 @@
             "dependencies": [
                 "tsc",
                 "rollup",
-                "copy-index-html",
-                "build:resources"
+                "copy-index-html"
+            ],
+            "command": "npm run build:resources",
+            "files": [
+                "dist/index.js",
+                "dist/index.html"
+            ],
+            "output": [
+                "dist/resources.txt"
             ]
         },
         "tsc": {
@@ -90,20 +97,6 @@
             ],
             "output": [
                 "dist/index.html"
-            ]
-        },
-        "build:resources": {
-            "command": "node ../../../../resources/shared/generate-resources.mjs ./dist",
-            "dependencies": [
-                "rollup",
-                "copy-index-html"
-            ],
-            "files": [
-                "dist/index.js",
-                "dist/index.html"
-            ],
-            "output": [
-                "dist/resources.txt"
             ]
         }
     }

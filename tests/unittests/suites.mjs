@@ -1,3 +1,7 @@
+import { execSync } from "child_process";
+import fs from "fs";
+import path from "path";
+import url from "url";
 import { ExperimentalSuites } from "../../suites-experimental/suites.mjs";
 import { DefaultSuites } from "../../suites/default-suites.mjs";
 
@@ -125,11 +129,6 @@ for (const [name, suites] of Object.entries(Suites)) {
             if (typeof window !== "undefined")
                 return; // Node-only file system and process verification
 
-            const fs = await import("node:fs");
-            const path = await import("node:path");
-            const url = await import("node:url");
-            const { execSync } = await import("node:child_process");
-
             const baseUrl = new URL("../../", import.meta.url);
             const repoRoot = url.fileURLToPath(baseUrl);
 
@@ -147,10 +146,8 @@ for (const [name, suites] of Object.entries(Suites)) {
             const visitedPackages = new Set();
 
             for (const suite of suites) {
-                const targetPath = suite.resources || suite.url;
-                if (!targetPath)
-                    continue;
-                const packageDir = findWorkloadPackageDir(targetPath);
+                expect(suite.resources).to.be.a("string");
+                const packageDir = findWorkloadPackageDir(suite.resources);
                 if (!packageDir || visitedPackages.has(packageDir))
                     continue;
 
@@ -159,15 +156,12 @@ for (const [name, suites] of Object.entries(Suites)) {
 
                 // 1. Validate build:resources script exists and targets generate-resources.mjs
                 expect(packageJson.scripts && packageJson.scripts["build:resources"]).to.be.ok();
-                const scriptCmd = packageJson.scripts["build:resources"] === "wireit" && packageJson.wireit?.["build:resources"]?.command ? packageJson.wireit["build:resources"].command : packageJson.scripts["build:resources"];
+                const scriptCmd = packageJson.scripts["build:resources"];
                 expect(scriptCmd).to.match(/generate-resources\.mjs/);
 
                 // 2. Read before state of resources.txt
-                if (!suite.resources)
-                    continue;
                 const resourcesFilePath = url.fileURLToPath(new URL(suite.resources, baseUrl));
-                if (!fs.existsSync(resourcesFilePath))
-                    continue;
+                expect(fs.existsSync(resourcesFilePath)).to.be(true);
                 const beforeContent = fs.readFileSync(resourcesFilePath, "utf-8").replace(/\r\n/g, "\n");
 
                 // 3. Directly execute the script command (bypassing npm CLI initialization overhead for <500ms total test duration)
