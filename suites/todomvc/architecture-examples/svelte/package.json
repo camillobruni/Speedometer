@@ -8,10 +8,11 @@
     },
     "private": true,
     "scripts": {
-        "build": "rollup -c && node ../../../../resources/shared/generate-resources.mjs ./dist",
+        "build": "rollup -c && npm run build:resources",
         "watch": "rollup -c -w",
         "serve": "http-server ./dist -p 7002 -c-1 --cors",
-        "dev": "npm run serve & npm run watch"
+        "dev": "npm run serve & npm run watch",
+        "build:resources": "node ../../../../resources/shared/generate-resources.mjs ./dist"
     },
     "dependencies": {
         "todomvc-app-css": "^2.4.2",

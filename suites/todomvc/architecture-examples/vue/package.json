@@ -10,8 +10,9 @@
     "scripts": {
         "sanitize": "OUTPUT_FOLDER=./dist node node_modules/sanitize-language",
         "dev": "vue-cli-service serve",
-        "build": "vue-cli-service build && npm run sanitize && node ../../../../resources/shared/generate-resources.mjs ./dist",
-        "lint": "vue-cli-service lint"
+        "build": "vue-cli-service build && npm run sanitize && npm run build:resources",
+        "lint": "vue-cli-service lint",
+        "build:resources": "node ../../../../resources/shared/generate-resources.mjs ./dist"
     },
     "dependencies": {
         "core-js": "^3.8.3",

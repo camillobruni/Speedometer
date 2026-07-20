@@ -10,9 +10,10 @@
     "scripts": {
         "ng": "ng",
         "dev": "ng serve",
-        "build": "ng build --source-map=true && node ../../../../resources/shared/generate-resources.mjs ./dist",
+        "build": "ng build --source-map=true && npm run build:resources",
         "watch": "ng build --watch --configuration development",
-        "test": "ng test"
+        "test": "ng test",
+        "build:resources": "node ../../../../resources/shared/generate-resources.mjs ./dist"
     },
     "dependencies": {
         "@angular/animations": "^14.2.0",

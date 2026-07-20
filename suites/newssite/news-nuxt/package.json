@@ -2,7 +2,7 @@
     "name": "nuxt-app",
     "private": true,
     "scripts": {
-        "build": "node scripts/build.mjs",
+        "build": "node scripts/build.mjs && npm run build:resources",
         "build:nuxt": "nuxt build",
         "dev": "nuxt dev",
         "generate": "nuxt generate",
@@ -11,7 +11,8 @@
         "lint:fix": "eslint . --fix",
         "pretty:check": "prettier --check ./",
         "pretty:fix": "prettier --write ./",
-        "format": "npm run pretty:fix ; npm run lint:fix"
+        "format": "npm run pretty:fix ; npm run lint:fix",
+        "build:resources": "node ../../../resources/shared/generate-resources.mjs ./dist"
     },
     "devDependencies": {
         "@nuxt/eslint-config": "^0.1.1",

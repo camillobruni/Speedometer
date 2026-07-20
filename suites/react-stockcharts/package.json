@@ -3,7 +3,10 @@
   "private": true,
   "scripts": {
     "start": "react-scripts start",
-    "build": "rm -rf build && react-scripts build"
+    "build": "npm run clean && npm run build:react && npm run build:resources",
+    "build:react": "BUILD_PATH=dist SKIP_PREFLIGHT_CHECK=true NODE_OPTIONS=--openssl-legacy-provider DISABLE_ESLINT_PLUGIN=true react-scripts build",
+    "build:resources": "node ../../resources/shared/generate-resources.mjs ./dist",
+    "clean": "rm -rf dist build"
   },
   "homepage": "./",
   "devDependencies": {

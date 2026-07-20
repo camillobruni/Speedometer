@@ -9,10 +9,11 @@
     },
     "scripts": {
         "sanitize": "OUTPUT_FOLDER=./dist node node_modules/sanitize-language",
-        "build": "webpack --config webpack.prod.mjs && npm run sanitize && node ../../../../resources/shared/generate-resources.mjs ./dist",
+        "build": "webpack --config webpack.prod.mjs && npm run sanitize && npm run build:resources",
         "dev": "webpack serve --open --config webpack.dev.mjs",
         "serve": "http-server ./dist -p 7002 -c-1 --cors",
-        "test": "jest"
+        "test": "jest",
+        "build:resources": "node ../../../../resources/shared/generate-resources.mjs ./dist"
     },
     "devDependencies": {
         "@babel/core": "^7.21.0",

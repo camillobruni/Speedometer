@@ -120,6 +120,65 @@ for (const [name, suites] of Object.entries(Suites)) {
             if (brokenResourcesList.length > 0)
                 throw new Error(`Failed to load the following resources:\n${brokenResourcesList.join("\n")}`);
         });
+        it("should have a valid build:resources package script that generates identical resources.txt", async function () {
+            this.timeout(15000);
+            if (typeof window !== "undefined")
+                return; // Node-only file system and process verification
+
+            const fs = await import("node:fs");
+            const path = await import("node:path");
+            const url = await import("node:url");
+            const { execSync } = await import("node:child_process");
+
+            const baseUrl = new URL("../../", import.meta.url);
+            const repoRoot = url.fileURLToPath(baseUrl);
+
+            function findWorkloadPackageDir(targetRelativePath) {
+                const targetUrl = new URL(targetRelativePath, baseUrl);
+                let currentDir = path.dirname(url.fileURLToPath(targetUrl));
+                while (currentDir !== path.parse(currentDir).root && path.resolve(currentDir) !== path.resolve(repoRoot)) {
+                    if (fs.existsSync(path.join(currentDir, "package.json")))
+                        return currentDir;
+                    currentDir = path.dirname(currentDir);
+                }
+                return null; // Safe fallback for non-npm workloads (e.g., perf.webkit.org, todomvc-dart-jaspr)
+            }
+
+            const visitedPackages = new Set();
+
+            for (const suite of suites) {
+                const targetPath = suite.resources || suite.url;
+                if (!targetPath)
+                    continue;
+                const packageDir = findWorkloadPackageDir(targetPath);
+                if (!packageDir || visitedPackages.has(packageDir))
+                    continue;
+
+                const packageJsonPath = path.join(packageDir, "package.json");
+                const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"));
+
+                // 1. Validate build:resources script exists and targets generate-resources.mjs
+                expect(packageJson.scripts && packageJson.scripts["build:resources"]).to.be.ok();
+                const scriptCmd = packageJson.scripts["build:resources"] === "wireit" && packageJson.wireit?.["build:resources"]?.command ? packageJson.wireit["build:resources"].command : packageJson.scripts["build:resources"];
+                expect(scriptCmd).to.match(/generate-resources\.mjs/);
+
+                // 2. Read before state of resources.txt
+                if (!suite.resources)
+                    continue;
+                const resourcesFilePath = url.fileURLToPath(new URL(suite.resources, baseUrl));
+                if (!fs.existsSync(resourcesFilePath))
+                    continue;
+                const beforeContent = fs.readFileSync(resourcesFilePath, "utf-8").replace(/\r\n/g, "\n");
+
+                // 3. Directly execute the script command (bypassing npm CLI initialization overhead for <500ms total test duration)
+                execSync(scriptCmd, { cwd: packageDir, stdio: "pipe", timeout: 10000 });
+
+                // 4. Assert resources.txt file remains identically unchanged and record evaluated package directory
+                const afterContent = fs.readFileSync(resourcesFilePath, "utf-8").replace(/\r\n/g, "\n");
+                expect(afterContent).to.be(beforeContent);
+                visitedPackages.add(packageDir);
+            }
+        });
     });
 }
 

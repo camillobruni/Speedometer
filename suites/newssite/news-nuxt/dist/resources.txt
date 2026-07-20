@@ -1,11 +1,15 @@
 404.html
 _nuxt/entry.4163a698.css
 _nuxt/entry.61b8a168.js
+_nuxt/entry.90cfa846.js
 _nuxt/error-404.23f2309d.css
 _nuxt/error-404.2a577bdf.js
+_nuxt/error-404.dfe56d3b.js
+_nuxt/error-500.5ffce2dc.js
 _nuxt/error-500.aa16ed4d.css
 _nuxt/error-500.c1eac2b8.js
 _nuxt/error-component.2cb571d2.js
+_nuxt/error-component.b08a0afc.js
 assets/images/2h-media-lPcQhLP-b4I-unsplash_150.jpg
 assets/images/aaron-huber-G7sE2S4Lab4-unsplash_336.jpg
 assets/images/adam-whitlock-I9j8Rk-JYFM-unsplash_684.jpg

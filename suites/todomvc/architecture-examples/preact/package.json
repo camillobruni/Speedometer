@@ -8,10 +8,11 @@
         "npm": ">=8.19.3"
     },
     "scripts": {
-        "build": "rollup -c --bundleConfigAsCjs && node ../../../../resources/shared/generate-resources.mjs ./dist",
+        "build": "rollup -c --bundleConfigAsCjs && npm run build:resources",
         "dev": "npm-run-all --parallel serve watch",
         "serve": "http-server ./dist -p 7002 -c-1 --cors -o",
-        "watch": "ROLLUP_WATCH=true rollup -c -w --bundleConfigAsCjs"
+        "watch": "ROLLUP_WATCH=true rollup -c -w --bundleConfigAsCjs",
+        "build:resources": "node ../../../../resources/shared/generate-resources.mjs ./dist"
     },
     "devDependencies": {
         "@babel/plugin-transform-react-jsx": "^7.21.0",

@@ -5,8 +5,9 @@
     "type": "module",
     "scripts": {
         "dev": "vite",
-        "build": "vite build && node ../../resources/shared/generate-resources.mjs ./dist",
-        "preview": "vite preview"
+        "build": "vite build && npm run build:resources",
+        "preview": "vite preview",
+        "build:resources": "node ../../resources/shared/generate-resources.mjs ./dist"
     },
     "devDependencies": {
         "@codemirror/lang-javascript": "^6.1.4",
