@@ -11,7 +11,7 @@
     "scripts": {
         "serve": "web-dev-server --config web-dev-server.config.mjs",
         "prebuild": "npm run build:main-css && npm run build:chat-window-css",
-        "build": "rollup --config rollup.config.js",
+        "build": "rollup --config rollup.config.js && node ../../resources/shared/generate-resources.mjs ./dist",
         "build:main-css": "npx tailwindcss -i ./src/input.css -o ./src/tailwind.generated.css --minify",
         "build:chat-window-css": "npx tailwindcss -c ./tailwind.chat-window.config.js -i ./src/input.css -o ./src/tailwind.chat-window.generated.css --minify",
         "dev": "concurrently \"npm:dev:*\"",

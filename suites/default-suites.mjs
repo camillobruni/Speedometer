@@ -966,8 +966,8 @@ export const DefaultSuites = freezeSuites([
     },
     {
         name: "React-Stockcharts-SVG",
-        url: "suites/react-stockcharts/build/index.html?type=svg",
-        resources: "suites/react-stockcharts/build/resources.txt",
+        url: "suites/react-stockcharts/dist/index.html?type=svg",
+        resources: "suites/react-stockcharts/dist/resources.txt",
         tags: ["default", "chart", "svg"],
         async prepare(page) {
             await page.waitForElement("#render");
@@ -1007,6 +1007,7 @@ export const DefaultSuites = freezeSuites([
     {
         name: "Perf-Dashboard",
         url: "suites/perf.webkit.org/public/v3/#/charts/?since=1678991819934&paneList=((55-1974-null-null-(5-2.5-500)))",
+        resources: "suites/perf.webkit.org/public/v3/resources.txt",
         tags: ["default", "chart", "webcomponents"],
         async prepare(page) {
             await page.waitForElement("#app-is-ready");

@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import esMain from "es-main";
 
 function walkDir(dir, fileList = []) {
     const files = fs.readdirSync(dir);
@@ -23,4 +24,9 @@ export function generateResourcesFile(distPath) {
     const relativePaths = files.map((f) => path.relative(absoluteDist, f)).filter((f) => f !== "resources.txt");
     fs.writeFileSync(path.join(absoluteDist, "resources.txt"), `${relativePaths.join("\n")}\n`, "utf8");
     console.log(`Generated resources.txt at ${distPath}`);
+}
+
+if (esMain(import.meta)) {
+    const distPath = process.argv[2] || "./dist";
+    generateResourcesFile(distPath);
 }

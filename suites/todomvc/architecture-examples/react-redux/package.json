@@ -9,7 +9,7 @@
     },
     "scripts": {
         "sanitize": "OUTPUT_FOLDER=./dist node node_modules/sanitize-language",
-        "build": "webpack --config webpack.prod.mjs && npm run sanitize",
+        "build": "webpack --config webpack.prod.mjs && npm run sanitize && node ../../../../resources/shared/generate-resources.mjs ./dist",
         "dev": "webpack serve --open --config webpack.dev.mjs",
         "serve": "http-server ./dist -p 7002 -c-1 --cors",
         "test": "jest"

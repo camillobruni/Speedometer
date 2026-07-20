@@ -10,7 +10,7 @@
     "scripts": {
         "ng": "ng",
         "dev": "ng serve",
-        "build": "ng build --source-map=true",
+        "build": "ng build --source-map=true && node ../../../../resources/shared/generate-resources.mjs ./dist",
         "watch": "ng build --watch --configuration development",
         "test": "ng test"
     },

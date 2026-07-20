@@ -8,7 +8,7 @@
         "npm": ">=8.19.3"
     },
     "scripts": {
-        "build": "rollup -c --bundleConfigAsCjs",
+        "build": "rollup -c --bundleConfigAsCjs && node ../../../../resources/shared/generate-resources.mjs ./dist",
         "dev": "npm-run-all --parallel serve watch",
         "serve": "http-server ./dist -p 7002 -c-1 --cors -o",
         "watch": "ROLLUP_WATCH=true rollup -c -w --bundleConfigAsCjs"
