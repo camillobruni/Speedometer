@@ -313,36 +313,43 @@ export const ExperimentalSuites = freezeSuites([
             new BenchmarkTestStep("InitializeMapAndTerrain", async (page) => {
                 page.call("benchmarkInitTerrain");
                 page.call("benchmarkFlushAsync");
+                page.call("benchmarkForceRasterization");
                 page.layout();
             }),
             new BenchmarkTestStep("AddRoadsAndTransit", async (page) => {
                 page.call("benchmarkAddRoadsTransit");
                 page.call("benchmarkFlushAsync");
+                page.call("benchmarkForceRasterization");
                 page.layout();
             }),
             new BenchmarkTestStep("AddBuildingsAndLandmarks", async (page) => {
                 page.call("benchmarkAddBuildingsLandmarks");
                 page.call("benchmarkFlushAsync");
+                page.call("benchmarkForceRasterization");
                 page.layout();
             }),
             new BenchmarkTestStep("NavigateGoldenGatePark", async (page) => {
                 page.call("benchmarkNavGoldenGatePark");
                 page.call("benchmarkFlushAsync");
+                page.call("benchmarkForceRasterization");
                 page.layout();
             }),
             new BenchmarkTestStep("NavigateDowntownLiDAR", async (page) => {
                 page.call("benchmarkNavDowntown");
                 page.call("benchmarkFlushAsync");
+                page.call("benchmarkForceRasterization");
                 page.layout();
             }),
             new BenchmarkTestStep("NavigateMuniCorridors", async (page) => {
                 page.call("benchmarkNavMuni");
                 page.call("benchmarkFlushAsync");
+                page.call("benchmarkForceRasterization");
                 page.layout();
             }),
             new BenchmarkTestStep("NavigateTwinPeaksView", async (page) => {
                 page.call("benchmarkNavTwinPeaks");
                 page.call("benchmarkFlushAsync");
+                page.call("benchmarkForceRasterization");
                 page.layout();
             }),
             new BenchmarkTestStep("TeardownAndClean", async (page) => {

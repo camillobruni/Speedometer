@@ -17,6 +17,17 @@ let parksData = null;
 let buildingsData = null;
 let transitData = null;
 
+let sharedRenderer = null;
+function getSharedRenderer() {
+    if (!sharedRenderer)
+        sharedRenderer = L.canvas({ padding: 0.05 });
+    return sharedRenderer;
+}
+
+export function resetSharedRenderer() {
+    sharedRenderer = null;
+}
+
 function countVertices(coords) {
     if (!Array.isArray(coords))
         return 0;
@@ -101,8 +112,8 @@ export function resetParsedDatasets() {
     riversData = null;
     peaksData = null;
     parksData = null;
-    buildingsData = null;
     transitData = null;
+    resetSharedRenderer();
 
 
     layerStats.set({
@@ -135,48 +146,73 @@ export function getTransitData() {
 }
 
 export function createRouteLayerGroup() {
-    const renderer = L.canvas({ padding: 0.5 });
+    const renderer = getSharedRenderer();
     const optionsByClass = Object.freeze({
-        highway: Object.freeze({ renderer, color: ROAD_STYLES.highway.color, weight: ROAD_STYLES.highway.weight, opacity: ROAD_STYLES.highway.opacity, interactive: false }),
-        arterial: Object.freeze({ renderer, color: ROAD_STYLES.arterial.color, weight: ROAD_STYLES.arterial.weight, opacity: ROAD_STYLES.arterial.opacity, interactive: false }),
-        collector: Object.freeze({ renderer, color: ROAD_STYLES.collector.color, weight: ROAD_STYLES.collector.weight, opacity: ROAD_STYLES.collector.opacity, interactive: false }),
-        residential: Object.freeze({ renderer, color: ROAD_STYLES.residential.color, weight: ROAD_STYLES.residential.weight, opacity: ROAD_STYLES.residential.opacity, interactive: false }),
-        alley: Object.freeze({ renderer, color: ROAD_STYLES.alley.color, weight: ROAD_STYLES.alley.weight, opacity: ROAD_STYLES.alley.opacity, interactive: false }),
-        default: Object.freeze({ renderer, color: ROAD_STYLES.default.color, weight: ROAD_STYLES.default.weight, opacity: ROAD_STYLES.default.opacity, interactive: false })
+        highway: Object.freeze({ renderer, color: ROAD_STYLES.highway.color, weight: ROAD_STYLES.highway.weight, opacity: ROAD_STYLES.highway.opacity, interactive: false, smoothFactor: 2.0 }),
+        arterial: Object.freeze({ renderer, color: ROAD_STYLES.arterial.color, weight: ROAD_STYLES.arterial.weight, opacity: ROAD_STYLES.arterial.opacity, interactive: false, smoothFactor: 2.0 }),
+        collector: Object.freeze({ renderer, color: ROAD_STYLES.collector.color, weight: ROAD_STYLES.collector.weight, opacity: ROAD_STYLES.collector.opacity, interactive: false, smoothFactor: 2.0 }),
+        residential: Object.freeze({ renderer, color: ROAD_STYLES.residential.color, weight: ROAD_STYLES.residential.weight, opacity: ROAD_STYLES.residential.opacity, interactive: false, smoothFactor: 2.0 }),
+        alley: Object.freeze({ renderer, color: ROAD_STYLES.alley.color, weight: ROAD_STYLES.alley.weight, opacity: ROAD_STYLES.alley.opacity, interactive: false, smoothFactor: 2.0 }),
+        default: Object.freeze({ renderer, color: ROAD_STYLES.default.color, weight: ROAD_STYLES.default.weight, opacity: ROAD_STYLES.default.opacity, interactive: false, smoothFactor: 2.0 })
     });
-    const layers = (routesData || []).map(route => L.polyline(route.coordinates, optionsByClass[route.class] || optionsByClass.default));
+    const coordsByClass = {
+        highway: [],
+        arterial: [],
+        collector: [],
+        residential: [],
+        alley: [],
+        default: []
+    };
+    for (const route of (routesData || [])) {
+        const cls = Object.prototype.hasOwnProperty.call(coordsByClass, route.class) ? route.class : "default";
+        coordsByClass[cls].push(route.coordinates);
+    }
+    const layers = [];
+    for (const [cls, coords] of Object.entries(coordsByClass)) {
+        if (coords.length > 0) {
+            layers.push(L.polyline(coords, optionsByClass[cls]));
+        }
+    }
     return L.layerGroup(layers);
 }
 
 export function createRiverLayerGroup() {
-    const renderer = L.canvas({ padding: 0.5 });
+    const renderer = getSharedRenderer();
     const polygonOptions = Object.freeze({
         renderer: renderer,
         color: THEME_COLORS.river,
         fillColor: THEME_COLORS.river,
         fillOpacity: 0.4,
         weight: 1.5,
-        interactive: false
+        interactive: false,
+        smoothFactor: 2.0
     });
     const polylineOptions = Object.freeze({
         renderer: renderer,
         color: THEME_COLORS.river,
         weight: 2.5,
         opacity: 0.8,
-        interactive: false
+        interactive: false,
+        smoothFactor: 2.0
     });
-    const layers = (riversData || []).map(feature => {
+    const polygons = [];
+    const polylines = [];
+    for (const feature of (riversData || [])) {
         if (feature.type === "polygon")
-            return L.polygon(feature.coordinates, polygonOptions);
+            polygons.push(feature.coordinates);
         else
-            return L.polyline(feature.coordinates, polylineOptions);
-
-    });
+            polylines.push(feature.coordinates);
+    }
+    const layers = [];
+    if (polygons.length > 0)
+        layers.push(L.polygon(polygons, polygonOptions));
+    if (polylines.length > 0)
+        layers.push(L.polyline(polylines, polylineOptions));
     return L.layerGroup(layers);
 }
 
 export function createPeakLayerGroup() {
-    const renderer = L.canvas({ padding: 0.5 });
+    const renderer = getSharedRenderer();
     const markerOptions = Object.freeze({
         renderer: renderer,
         color: THEME_COLORS.peak,
@@ -199,30 +235,42 @@ export function createPeakLayerGroup() {
 }
 
 export function createParkLayerGroup() {
-    const renderer = L.canvas({ padding: 0.5 });
+    const renderer = getSharedRenderer();
     const options = Object.freeze({
         renderer,
         color: "#2e8b57",
         fillColor: THEME_COLORS.park,
         fillOpacity: 0.35,
         weight: 1.5,
-        interactive: false
+        interactive: false,
+        smoothFactor: 2.0
     });
-    const layers = (parksData || []).map(park => {
-        return park.type === "polygon" ? L.polygon(park.coordinates, options) : L.polyline(park.coordinates, options);
-    });
+    const polygons = [];
+    const polylines = [];
+    for (const park of (parksData || [])) {
+        if (park.type === "polygon")
+            polygons.push(park.coordinates);
+        else
+            polylines.push(park.coordinates);
+    }
+    const layers = [];
+    if (polygons.length > 0)
+        layers.push(L.polygon(polygons, options));
+    if (polylines.length > 0)
+        layers.push(L.polyline(polylines, options));
     return L.layerGroup(layers);
 }
 
 export function createBuildingLayerGroup() {
-    const renderer = L.canvas({ padding: 0.5 });
+    const renderer = getSharedRenderer();
     const normalBuckets = Array.from({ length: 20 }, (_, i) => Object.freeze({
         renderer,
         color: THEME_COLORS.border,
         fillColor: THEME_COLORS.building,
         fillOpacity: Math.round((0.20 + (i / 19) * 0.75) * 100) / 100,
         weight: 1,
-        interactive: false
+        interactive: false,
+        smoothFactor: 2.0
     }));
     const tallBuckets = Array.from({ length: 20 }, (_, i) => Object.freeze({
         renderer,
@@ -230,30 +278,62 @@ export function createBuildingLayerGroup() {
         fillColor: THEME_COLORS.buildingTall,
         fillOpacity: Math.round((0.20 + (i / 19) * 0.75) * 100) / 100,
         weight: 1,
-        interactive: false
+        interactive: false,
+        smoothFactor: 2.0
     }));
 
-    const layers = (buildingsData || []).map(building => {
+    const normalPolys = Array.from({ length: 20 }, () => ({ polygons: [], polylines: [] }));
+    const tallPolys = Array.from({ length: 20 }, () => ({ polygons: [], polylines: [] }));
+
+    for (const building of (buildingsData || [])) {
         const height = Number(building.hgt_median_m || 15);
         const bucketIdx = Math.min(19, Math.max(0, Math.floor(((height - 10) / 190) * 20)));
-        const options = height > 60 ? tallBuckets[bucketIdx] : normalBuckets[bucketIdx];
-        return building.type === "polygon" ? L.polygon(building.coordinates, options) : L.polyline(building.coordinates, options);
-    });
+        const target = height > 60 ? tallPolys[bucketIdx] : normalPolys[bucketIdx];
+        if (building.type === "polygon") {
+            target.polygons.push(building.coordinates);
+        } else {
+            target.polylines.push(building.coordinates);
+        }
+    }
+
+    const layers = [];
+    for (let i = 0; i < 20; i++) {
+        if (normalPolys[i].polygons.length > 0)
+            layers.push(L.polygon(normalPolys[i].polygons, normalBuckets[i]));
+        if (normalPolys[i].polylines.length > 0)
+            layers.push(L.polyline(normalPolys[i].polylines, normalBuckets[i]));
+        if (tallPolys[i].polygons.length > 0)
+            layers.push(L.polygon(tallPolys[i].polygons, tallBuckets[i]));
+        if (tallPolys[i].polylines.length > 0)
+            layers.push(L.polyline(tallPolys[i].polylines, tallBuckets[i]));
+    }
+
     return L.layerGroup(layers);
 }
 
 export function createTransitLayerGroup() {
-    const renderer = L.canvas({ padding: 0.5 });
+    const renderer = getSharedRenderer();
     const options = Object.freeze({
         renderer,
         color: THEME_COLORS.transit,
         weight: 2.8,
         opacity: 0.85,
         dashArray: "5, 5",
-        interactive: false
+        interactive: false,
+        smoothFactor: 2.0
     });
-    const layers = (transitData || []).map(line => {
-        return line.type === "polygon" ? L.polygon(line.coordinates, options) : L.polyline(line.coordinates, options);
-    });
+    const polygons = [];
+    const polylines = [];
+    for (const line of (transitData || [])) {
+        if (line.type === "polygon")
+            polygons.push(line.coordinates);
+        else
+            polylines.push(line.coordinates);
+    }
+    const layers = [];
+    if (polygons.length > 0)
+        layers.push(L.polygon(polygons, options));
+    if (polylines.length > 0)
+        layers.push(L.polyline(polylines, options));
     return L.layerGroup(layers);
 }

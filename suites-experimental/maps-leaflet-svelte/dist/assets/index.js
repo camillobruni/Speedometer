@@ -10056,6 +10056,15 @@ let peaksData = null;
 let parksData = null;
 let buildingsData = null;
 let transitData = null;
+let sharedRenderer = null;
+function getSharedRenderer() {
+  if (!sharedRenderer)
+    sharedRenderer = L$1.canvas({ padding: 0.05 });
+  return sharedRenderer;
+}
+function resetSharedRenderer() {
+  sharedRenderer = null;
+}
 function countVertices(coords) {
   if (!Array.isArray(coords))
     return 0;
@@ -10132,8 +10141,8 @@ function resetParsedDatasets() {
   riversData = null;
   peaksData = null;
   parksData = null;
-  buildingsData = null;
   transitData = null;
+  resetSharedRenderer();
   layerStats.set({
     routes: { features: 0, vertices: 0 },
     rivers: { features: 0, vertices: 0 },
@@ -10144,45 +10153,71 @@ function resetParsedDatasets() {
   });
 }
 function createRouteLayerGroup() {
-  const renderer = L$1.canvas({ padding: 0.5 });
+  const renderer = getSharedRenderer();
   const optionsByClass = Object.freeze({
-    highway: Object.freeze({ renderer, color: ROAD_STYLES.highway.color, weight: ROAD_STYLES.highway.weight, opacity: ROAD_STYLES.highway.opacity, interactive: false }),
-    arterial: Object.freeze({ renderer, color: ROAD_STYLES.arterial.color, weight: ROAD_STYLES.arterial.weight, opacity: ROAD_STYLES.arterial.opacity, interactive: false }),
-    collector: Object.freeze({ renderer, color: ROAD_STYLES.collector.color, weight: ROAD_STYLES.collector.weight, opacity: ROAD_STYLES.collector.opacity, interactive: false }),
-    residential: Object.freeze({ renderer, color: ROAD_STYLES.residential.color, weight: ROAD_STYLES.residential.weight, opacity: ROAD_STYLES.residential.opacity, interactive: false }),
-    alley: Object.freeze({ renderer, color: ROAD_STYLES.alley.color, weight: ROAD_STYLES.alley.weight, opacity: ROAD_STYLES.alley.opacity, interactive: false }),
-    default: Object.freeze({ renderer, color: ROAD_STYLES.default.color, weight: ROAD_STYLES.default.weight, opacity: ROAD_STYLES.default.opacity, interactive: false })
+    highway: Object.freeze({ renderer, color: ROAD_STYLES.highway.color, weight: ROAD_STYLES.highway.weight, opacity: ROAD_STYLES.highway.opacity, interactive: false, smoothFactor: 2 }),
+    arterial: Object.freeze({ renderer, color: ROAD_STYLES.arterial.color, weight: ROAD_STYLES.arterial.weight, opacity: ROAD_STYLES.arterial.opacity, interactive: false, smoothFactor: 2 }),
+    collector: Object.freeze({ renderer, color: ROAD_STYLES.collector.color, weight: ROAD_STYLES.collector.weight, opacity: ROAD_STYLES.collector.opacity, interactive: false, smoothFactor: 2 }),
+    residential: Object.freeze({ renderer, color: ROAD_STYLES.residential.color, weight: ROAD_STYLES.residential.weight, opacity: ROAD_STYLES.residential.opacity, interactive: false, smoothFactor: 2 }),
+    alley: Object.freeze({ renderer, color: ROAD_STYLES.alley.color, weight: ROAD_STYLES.alley.weight, opacity: ROAD_STYLES.alley.opacity, interactive: false, smoothFactor: 2 }),
+    default: Object.freeze({ renderer, color: ROAD_STYLES.default.color, weight: ROAD_STYLES.default.weight, opacity: ROAD_STYLES.default.opacity, interactive: false, smoothFactor: 2 })
   });
-  const layers = (routesData || []).map((route) => L$1.polyline(route.coordinates, optionsByClass[route.class] || optionsByClass.default));
+  const coordsByClass = {
+    highway: [],
+    arterial: [],
+    collector: [],
+    residential: [],
+    alley: [],
+    default: []
+  };
+  for (const route of routesData || []) {
+    const cls = Object.prototype.hasOwnProperty.call(coordsByClass, route.class) ? route.class : "default";
+    coordsByClass[cls].push(route.coordinates);
+  }
+  const layers = [];
+  for (const [cls, coords] of Object.entries(coordsByClass)) {
+    if (coords.length > 0) {
+      layers.push(L$1.polyline(coords, optionsByClass[cls]));
+    }
+  }
   return L$1.layerGroup(layers);
 }
 function createRiverLayerGroup() {
-  const renderer = L$1.canvas({ padding: 0.5 });
+  const renderer = getSharedRenderer();
   const polygonOptions = Object.freeze({
     renderer,
     color: THEME_COLORS.river,
     fillColor: THEME_COLORS.river,
     fillOpacity: 0.4,
     weight: 1.5,
-    interactive: false
+    interactive: false,
+    smoothFactor: 2
   });
   const polylineOptions = Object.freeze({
     renderer,
     color: THEME_COLORS.river,
     weight: 2.5,
     opacity: 0.8,
-    interactive: false
+    interactive: false,
+    smoothFactor: 2
   });
-  const layers = (riversData || []).map((feature) => {
+  const polygons = [];
+  const polylines = [];
+  for (const feature of riversData || []) {
     if (feature.type === "polygon")
-      return L$1.polygon(feature.coordinates, polygonOptions);
+      polygons.push(feature.coordinates);
     else
-      return L$1.polyline(feature.coordinates, polylineOptions);
-  });
+      polylines.push(feature.coordinates);
+  }
+  const layers = [];
+  if (polygons.length > 0)
+    layers.push(L$1.polygon(polygons, polygonOptions));
+  if (polylines.length > 0)
+    layers.push(L$1.polyline(polylines, polylineOptions));
   return L$1.layerGroup(layers);
 }
 function createPeakLayerGroup() {
-  const renderer = L$1.canvas({ padding: 0.5 });
+  const renderer = getSharedRenderer();
   const markerOptions = Object.freeze({
     renderer,
     color: THEME_COLORS.peak,
@@ -10204,29 +10239,41 @@ function createPeakLayerGroup() {
   return L$1.layerGroup(layers);
 }
 function createParkLayerGroup() {
-  const renderer = L$1.canvas({ padding: 0.5 });
+  const renderer = getSharedRenderer();
   const options = Object.freeze({
     renderer,
     color: "#2e8b57",
     fillColor: THEME_COLORS.park,
     fillOpacity: 0.35,
     weight: 1.5,
-    interactive: false
+    interactive: false,
+    smoothFactor: 2
   });
-  const layers = (parksData || []).map((park) => {
-    return park.type === "polygon" ? L$1.polygon(park.coordinates, options) : L$1.polyline(park.coordinates, options);
-  });
+  const polygons = [];
+  const polylines = [];
+  for (const park of parksData || []) {
+    if (park.type === "polygon")
+      polygons.push(park.coordinates);
+    else
+      polylines.push(park.coordinates);
+  }
+  const layers = [];
+  if (polygons.length > 0)
+    layers.push(L$1.polygon(polygons, options));
+  if (polylines.length > 0)
+    layers.push(L$1.polyline(polylines, options));
   return L$1.layerGroup(layers);
 }
 function createBuildingLayerGroup() {
-  const renderer = L$1.canvas({ padding: 0.5 });
+  const renderer = getSharedRenderer();
   const normalBuckets = Array.from({ length: 20 }, (_, i) => Object.freeze({
     renderer,
     color: THEME_COLORS.border,
     fillColor: THEME_COLORS.building,
     fillOpacity: Math.round((0.2 + i / 19 * 0.75) * 100) / 100,
     weight: 1,
-    interactive: false
+    interactive: false,
+    smoothFactor: 2
   }));
   const tallBuckets = Array.from({ length: 20 }, (_, i) => Object.freeze({
     renderer,
@@ -10234,29 +10281,58 @@ function createBuildingLayerGroup() {
     fillColor: THEME_COLORS.buildingTall,
     fillOpacity: Math.round((0.2 + i / 19 * 0.75) * 100) / 100,
     weight: 1,
-    interactive: false
+    interactive: false,
+    smoothFactor: 2
   }));
-  const layers = (buildingsData || []).map((building) => {
+  const normalPolys = Array.from({ length: 20 }, () => ({ polygons: [], polylines: [] }));
+  const tallPolys = Array.from({ length: 20 }, () => ({ polygons: [], polylines: [] }));
+  for (const building of buildingsData || []) {
     const height = Number(building.hgt_median_m || 15);
     const bucketIdx = Math.min(19, Math.max(0, Math.floor((height - 10) / 190 * 20)));
-    const options = height > 60 ? tallBuckets[bucketIdx] : normalBuckets[bucketIdx];
-    return building.type === "polygon" ? L$1.polygon(building.coordinates, options) : L$1.polyline(building.coordinates, options);
-  });
+    const target = height > 60 ? tallPolys[bucketIdx] : normalPolys[bucketIdx];
+    if (building.type === "polygon") {
+      target.polygons.push(building.coordinates);
+    } else {
+      target.polylines.push(building.coordinates);
+    }
+  }
+  const layers = [];
+  for (let i = 0; i < 20; i++) {
+    if (normalPolys[i].polygons.length > 0)
+      layers.push(L$1.polygon(normalPolys[i].polygons, normalBuckets[i]));
+    if (normalPolys[i].polylines.length > 0)
+      layers.push(L$1.polyline(normalPolys[i].polylines, normalBuckets[i]));
+    if (tallPolys[i].polygons.length > 0)
+      layers.push(L$1.polygon(tallPolys[i].polygons, tallBuckets[i]));
+    if (tallPolys[i].polylines.length > 0)
+      layers.push(L$1.polyline(tallPolys[i].polylines, tallBuckets[i]));
+  }
   return L$1.layerGroup(layers);
 }
 function createTransitLayerGroup() {
-  const renderer = L$1.canvas({ padding: 0.5 });
+  const renderer = getSharedRenderer();
   const options = Object.freeze({
     renderer,
     color: THEME_COLORS.transit,
     weight: 2.8,
     opacity: 0.85,
     dashArray: "5, 5",
-    interactive: false
+    interactive: false,
+    smoothFactor: 2
   });
-  const layers = (transitData || []).map((line) => {
-    return line.type === "polygon" ? L$1.polygon(line.coordinates, options) : L$1.polyline(line.coordinates, options);
-  });
+  const polygons = [];
+  const polylines = [];
+  for (const line of transitData || []) {
+    if (line.type === "polygon")
+      polygons.push(line.coordinates);
+    else
+      polylines.push(line.coordinates);
+  }
+  const layers = [];
+  if (polygons.length > 0)
+    layers.push(L$1.polygon(polygons, options));
+  if (polylines.length > 0)
+    layers.push(L$1.polyline(polylines, options));
   return L$1.layerGroup(layers);
 }
 class BenchmarkDriver {
@@ -10307,6 +10383,7 @@ class BenchmarkDriver {
         this.map.removeLayer(this.transitGroup);
       this.map.remove();
       this.map = null;
+      resetSharedRenderer();
       this.topographicLayer = null;
       this.routeGroup = null;
       this.riverGroup = null;
@@ -10405,23 +10482,30 @@ class BenchmarkDriver {
   navDowntown() {
     if (!this.map)
       return;
-    this.map.setView([37.7915, -122.399], 17, { animate: false });
+    this.map.setView([37.7915, -122.399], 16.5, { animate: false });
     this.currentPanZoomIndex = 2;
     mapStore.update((s) => ({ ...s, panZoomStep: 5, activeStep: 5 }));
   }
   navMuni() {
     if (!this.map)
       return;
-    this.map.setView([37.755, -122.44], 12, { animate: false });
+    if (this.buildingGroup && this.map.hasLayer(this.buildingGroup)) {
+      this.map.removeLayer(this.buildingGroup);
+    }
+    this.map.setView([37.7675, -122.428], 13.5, { animate: false });
     this.currentPanZoomIndex = 3;
-    mapStore.update((s) => ({ ...s, panZoomStep: 6, activeStep: 6 }));
+    mapStore.update((s) => ({ ...s, buildingsVisible: false, panZoomStep: 6, activeStep: 6 }));
   }
   navTwinPeaks() {
     if (!this.map)
       return;
-    this.map.setView([37.7525, -122.4474], 15, { animate: false });
+    if (!this.buildingGroup)
+      this.buildingGroup = createBuildingLayerGroup();
+    if (!this.map.hasLayer(this.buildingGroup))
+      this.buildingGroup.addTo(this.map);
+    this.map.setView([37.7525, -122.4475], 15, { animate: false });
     this.currentPanZoomIndex = 4;
-    mapStore.update((s) => ({ ...s, panZoomStep: 7, activeStep: 7 }));
+    mapStore.update((s) => ({ ...s, buildingsVisible: true, panZoomStep: 7, activeStep: 7 }));
   }
   addOverlays() {
     if (!this.map)
@@ -10601,6 +10685,92 @@ class BenchmarkDriver {
     if (typeof window.__speedometer_flush_raf === "function")
       window.__speedometer_flush_raf();
   }
+  forceCanvasRasterization(assertNonEmpty = true) {
+    if (!this.map)
+      return 0;
+    const overlayPane = this.map.getPane("overlayPane");
+    const tilePane = this.map.getPane("tilePane");
+    const overlayCanvases = overlayPane ? Array.from(overlayPane.querySelectorAll("canvas")) : [];
+    const tileCanvases = tilePane ? Array.from(tilePane.querySelectorAll("canvas")) : [];
+    const canvases = [...overlayCanvases, ...tileCanvases];
+    if (canvases.length === 0)
+      return 0;
+    let checksum = 0;
+    let hasNonZeroAlpha = false;
+    for (const canvas of canvases) {
+      const w = canvas.width;
+      const h = canvas.height;
+      if (w <= 0 || h <= 0)
+        continue;
+      const ctx = canvas.getContext("2d");
+      if (!ctx)
+        continue;
+      const sampleBoxes = [
+        [0, 0],
+        [Math.max(0, w - 4), 0],
+        [0, Math.max(0, h - 4)],
+        [Math.max(0, w - 4), Math.max(0, h - 4)],
+        [Math.floor(Math.max(0, w - 4) / 2), Math.floor(Math.max(0, h - 4) / 2)]
+      ];
+      for (const [x, y] of sampleBoxes) {
+        try {
+          const sampleWidth = Math.min(4, w - x);
+          const sampleHeight = Math.min(4, h - y);
+          if (sampleWidth <= 0 || sampleHeight <= 0)
+            continue;
+          const imageData = ctx.getImageData(x, y, sampleWidth, sampleHeight);
+          const data = imageData.data;
+          for (let i = 0; i < data.length; i += 4) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            const a = data[i + 3];
+            if (a > 0)
+              hasNonZeroAlpha = true;
+            checksum = (checksum << 5) - checksum + r + (g << 1) + b + (a << 2) | 0;
+          }
+        } catch (e) {
+          console.warn("getImageData sample failed:", e);
+        }
+      }
+    }
+    if (!hasNonZeroAlpha) {
+      for (const canvas of canvases) {
+        const w = canvas.width;
+        const h = canvas.height;
+        if (w <= 0 || h <= 0)
+          continue;
+        const ctx = canvas.getContext("2d");
+        if (!ctx)
+          continue;
+        try {
+          const bandHeight = Math.min(32, h);
+          const y = Math.floor(Math.max(0, h - bandHeight) / 2);
+          const bandData = ctx.getImageData(0, y, w, bandHeight);
+          const data = bandData.data;
+          for (let i = 0; i < data.length; i += 4) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            const a = data[i + 3];
+            if (a > 0)
+              hasNonZeroAlpha = true;
+            checksum = (checksum << 5) - checksum + r + (g << 1) + b + (a << 2) | 0;
+          }
+          if (hasNonZeroAlpha)
+            break;
+        } catch (e) {
+          console.warn("getImageData fallback band failed:", e);
+        }
+      }
+    }
+    if (assertNonEmpty && !hasNonZeroAlpha) {
+      console.warn("Canvas rasterization verification failed: all sampled pixels have zero alpha (empty render).");
+    }
+    if (typeof window !== "undefined")
+      window._lastCanvasChecksum = checksum;
+    return checksum;
+  }
 }
 const benchmarkDriver = new BenchmarkDriver();
 if (typeof window !== "undefined") {
@@ -10618,6 +10788,7 @@ if (typeof window !== "undefined") {
   window.benchmarkNextPanZoomIncrement = () => benchmarkDriver.nextPanZoomIncrement();
   window.benchmarkTeardown = () => benchmarkDriver.teardown();
   window.benchmarkFlushAsync = () => benchmarkDriver.flushAsync();
+  window.benchmarkForceRasterization = () => benchmarkDriver.forceCanvasRasterization();
 }
 function create_fragment$2(ctx) {
   let aside;

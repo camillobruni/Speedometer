@@ -8,7 +8,8 @@ import {
     createBuildingLayerGroup,
     createTransitLayerGroup,
     decompressAndParseDatasets,
-    resetParsedDatasets
+    resetParsedDatasets,
+    resetSharedRenderer
 } from "./dataLoader.js";
 import { mapStore } from "../stores/mapStore.js";
 
@@ -71,6 +72,7 @@ class BenchmarkDriver {
 
             this.map.remove();
             this.map = null;
+            resetSharedRenderer();
             this.topographicLayer = null;
             this.routeGroup = null;
             this.riverGroup = null;
@@ -192,7 +194,7 @@ class BenchmarkDriver {
     navDowntown() {
         if (!this.map)
             return;
-        this.map.setView([37.7915, -122.3990], 17, { animate: false });
+        this.map.setView([37.7915, -122.3990], 16.5, { animate: false });
         this.currentPanZoomIndex = 2;
         mapStore.update(s => ({ ...s, panZoomStep: 5, activeStep: 5 }));
     }
@@ -200,17 +202,24 @@ class BenchmarkDriver {
     navMuni() {
         if (!this.map)
             return;
-        this.map.setView([37.7550, -122.4400], 12, { animate: false });
+        if (this.buildingGroup && this.map.hasLayer(this.buildingGroup)) {
+            this.map.removeLayer(this.buildingGroup);
+        }
+        this.map.setView([37.7675, -122.4280], 13.5, { animate: false });
         this.currentPanZoomIndex = 3;
-        mapStore.update(s => ({ ...s, panZoomStep: 6, activeStep: 6 }));
+        mapStore.update(s => ({ ...s, buildingsVisible: false, panZoomStep: 6, activeStep: 6 }));
     }
 
     navTwinPeaks() {
         if (!this.map)
             return;
-        this.map.setView([37.7525, -122.4474], 15, { animate: false });
+        if (!this.buildingGroup)
+            this.buildingGroup = createBuildingLayerGroup();
+        if (!this.map.hasLayer(this.buildingGroup))
+            this.buildingGroup.addTo(this.map);
+        this.map.setView([37.7525, -122.4475], 15, { animate: false });
         this.currentPanZoomIndex = 4;
-        mapStore.update(s => ({ ...s, panZoomStep: 7, activeStep: 7 }));
+        mapStore.update(s => ({ ...s, buildingsVisible: true, panZoomStep: 7, activeStep: 7 }));
     }
 
     addOverlays() {
@@ -420,6 +429,98 @@ class BenchmarkDriver {
             window.__speedometer_flush_raf();
 
     }
+
+    forceCanvasRasterization(assertNonEmpty = true) {
+        if (!this.map)
+            return 0;
+        const overlayPane = this.map.getPane("overlayPane");
+        const tilePane = this.map.getPane("tilePane");
+        const overlayCanvases = overlayPane ? Array.from(overlayPane.querySelectorAll("canvas")) : [];
+        const tileCanvases = tilePane ? Array.from(tilePane.querySelectorAll("canvas")) : [];
+        const canvases = [...overlayCanvases, ...tileCanvases];
+        if (canvases.length === 0)
+            return 0;
+
+        let checksum = 0;
+        let hasNonZeroAlpha = false;
+
+        for (const canvas of canvases) {
+            const w = canvas.width;
+            const h = canvas.height;
+            if (w <= 0 || h <= 0)
+                continue;
+            const ctx = canvas.getContext("2d");
+            if (!ctx)
+                continue;
+            const sampleBoxes = [
+                [0, 0],
+                [Math.max(0, w - 4), 0],
+                [0, Math.max(0, h - 4)],
+                [Math.max(0, w - 4), Math.max(0, h - 4)],
+                [Math.floor(Math.max(0, w - 4) / 2), Math.floor(Math.max(0, h - 4) / 2)]
+            ];
+            for (const [x, y] of sampleBoxes) {
+                try {
+                    const sampleWidth = Math.min(4, w - x);
+                    const sampleHeight = Math.min(4, h - y);
+                    if (sampleWidth <= 0 || sampleHeight <= 0)
+                        continue;
+                    const imageData = ctx.getImageData(x, y, sampleWidth, sampleHeight);
+                    const data = imageData.data;
+                    for (let i = 0; i < data.length; i += 4) {
+                        const r = data[i];
+                        const g = data[i + 1];
+                        const b = data[i + 2];
+                        const a = data[i + 3];
+                        if (a > 0)
+                            hasNonZeroAlpha = true;
+                        checksum = ((checksum << 5) - checksum + r + (g << 1) + b + (a << 2)) | 0;
+                    }
+                } catch (e) {
+                    console.warn("getImageData sample failed:", e);
+                }
+            }
+        }
+
+        if (!hasNonZeroAlpha) {
+            for (const canvas of canvases) {
+                const w = canvas.width;
+                const h = canvas.height;
+                if (w <= 0 || h <= 0)
+                    continue;
+                const ctx = canvas.getContext("2d");
+                if (!ctx)
+                    continue;
+                try {
+                    const bandHeight = Math.min(32, h);
+                    const y = Math.floor(Math.max(0, h - bandHeight) / 2);
+                    const bandData = ctx.getImageData(0, y, w, bandHeight);
+                    const data = bandData.data;
+                    for (let i = 0; i < data.length; i += 4) {
+                        const r = data[i];
+                        const g = data[i + 1];
+                        const b = data[i + 2];
+                        const a = data[i + 3];
+                        if (a > 0)
+                            hasNonZeroAlpha = true;
+                        checksum = ((checksum << 5) - checksum + r + (g << 1) + b + (a << 2)) | 0;
+                    }
+                    if (hasNonZeroAlpha)
+                        break;
+                } catch (e) {
+                    console.warn("getImageData fallback band failed:", e);
+                }
+            }
+        }
+
+        if (assertNonEmpty && !hasNonZeroAlpha) {
+            console.warn("Canvas rasterization verification failed: all sampled pixels have zero alpha (empty render).");
+        }
+        if (typeof window !== "undefined")
+            window._lastCanvasChecksum = checksum;
+
+        return checksum;
+    }
 }
 
 export const benchmarkDriver = new BenchmarkDriver();
@@ -439,4 +540,5 @@ if (typeof window !== "undefined") {
     window.benchmarkNextPanZoomIncrement = () => benchmarkDriver.nextPanZoomIncrement();
     window.benchmarkTeardown = () => benchmarkDriver.teardown();
     window.benchmarkFlushAsync = () => benchmarkDriver.flushAsync();
+    window.benchmarkForceRasterization = () => benchmarkDriver.forceCanvasRasterization();
 }
