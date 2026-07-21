@@ -16,7 +16,6 @@
 <aside class="sidebar">
     <div class="panel-header">
         <h1 class="panel-title">Layers</h1>
-        <p class="panel-subtitle">SF TIGER/Line GIS</p>
     </div>
 
     <div class="section-card">
@@ -61,7 +60,7 @@
     </div>
 
     <div class="section-card">
-        <h2 class="section-title">Vector Overlays (CC0)</h2>
+        <h2 class="section-title">Layers</h2>
         <button
             id="btn-toggle-parks"
             class="control-btn"

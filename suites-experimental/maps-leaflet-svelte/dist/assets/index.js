@@ -10622,219 +10622,219 @@ if (typeof window !== "undefined") {
 function create_fragment$2(ctx) {
   let aside;
   let div0;
-  let t3;
+  let t1;
   let div4;
   let h20;
-  let t5;
+  let t3;
   let button0;
   let div1;
   let span0;
-  let t7;
+  let t5;
   let span1;
-  let t8_value = (
+  let t6_value = (
     /*$mapStore*/
     ctx[0].decompressed ? "READY" : "OFF"
   );
-  let t8;
+  let t6;
   let button0_disabled_value;
-  let t9;
+  let t7;
   let button1;
   let div2;
   let span2;
-  let t11;
+  let t9;
   let span3;
-  let t12_value = !/*$mapStore*/
+  let t10_value = !/*$mapStore*/
   ctx[0].decompressed ? "WAIT" : (
     /*$mapStore*/
     ctx[0].initialized ? "READY" : "OFF"
   );
-  let t12;
+  let t10;
   let button1_disabled_value;
-  let t13;
+  let t11;
   let button2;
   let div3;
   let span4;
-  let t15;
+  let t13;
   let span5;
-  let t16_value = !/*$mapStore*/
+  let t14_value = !/*$mapStore*/
   (ctx[0].initialized || /*$mapStore*/
   ctx[0].decompressed) ? "OFF" : "RESET";
-  let t16;
+  let t14;
   let button2_disabled_value;
-  let t17;
+  let t15;
   let div17;
   let h21;
-  let t19;
+  let t17;
   let button3;
   let div5;
   let span8;
-  let t22;
+  let t20;
   let span9;
-  let t23_value = (
+  let t21_value = (
     /*$mapStore*/
     ctx[0].parksVisible ? "ON" : "OFF"
   );
-  let t23;
-  let t24;
+  let t21;
+  let t22;
   let div6;
-  let t25_value = formatCount(
+  let t23_value = formatCount(
     /*$layerStats*/
     ctx[1].parks.features
   ) + "";
-  let t25;
-  let t26;
-  let t27_value = formatCount(
+  let t23;
+  let t24;
+  let t25_value = formatCount(
     /*$layerStats*/
     ctx[1].parks.vertices
   ) + "";
-  let t27;
-  let t28;
+  let t25;
+  let t26;
   let button3_disabled_value;
-  let t29;
+  let t27;
   let button4;
   let div7;
   let span12;
-  let t32;
+  let t30;
   let span13;
-  let t33_value = (
+  let t31_value = (
     /*$mapStore*/
     ctx[0].riversVisible ? "ON" : "OFF"
   );
-  let t33;
-  let t34;
+  let t31;
+  let t32;
   let div8;
-  let t35_value = formatCount(
+  let t33_value = formatCount(
     /*$layerStats*/
     ctx[1].rivers.features
   ) + "";
-  let t35;
-  let t36;
-  let t37_value = formatCount(
+  let t33;
+  let t34;
+  let t35_value = formatCount(
     /*$layerStats*/
     ctx[1].rivers.vertices
   ) + "";
-  let t37;
-  let t38;
+  let t35;
+  let t36;
   let button4_disabled_value;
-  let t39;
+  let t37;
   let button5;
   let div9;
   let span16;
-  let t42;
+  let t40;
   let span17;
-  let t43_value = (
+  let t41_value = (
     /*$mapStore*/
     ctx[0].buildingsVisible ? "ON" : "OFF"
   );
-  let t43;
-  let t44;
+  let t41;
+  let t42;
   let div10;
-  let t45_value = formatCount(
+  let t43_value = formatCount(
     /*$layerStats*/
     ctx[1].buildings.features
   ) + "";
-  let t45;
-  let t46;
-  let t47_value = formatCount(
+  let t43;
+  let t44;
+  let t45_value = formatCount(
     /*$layerStats*/
     ctx[1].buildings.vertices
   ) + "";
-  let t47;
-  let t48;
+  let t45;
+  let t46;
   let button5_disabled_value;
-  let t49;
+  let t47;
   let button6;
   let div11;
   let span20;
-  let t52;
+  let t50;
   let span21;
-  let t53_value = (
+  let t51_value = (
     /*$mapStore*/
     ctx[0].routesVisible ? "ON" : "OFF"
   );
-  let t53;
-  let t54;
+  let t51;
+  let t52;
   let div12;
-  let t55_value = formatCount(
+  let t53_value = formatCount(
     /*$layerStats*/
     ctx[1].routes.features
   ) + "";
-  let t55;
-  let t56;
-  let t57_value = formatCount(
+  let t53;
+  let t54;
+  let t55_value = formatCount(
     /*$layerStats*/
     ctx[1].routes.vertices
   ) + "";
-  let t57;
-  let t58;
+  let t55;
+  let t56;
   let button6_disabled_value;
-  let t59;
+  let t57;
   let button7;
   let div13;
   let span24;
-  let t62;
+  let t60;
   let span25;
-  let t63_value = (
+  let t61_value = (
     /*$mapStore*/
     ctx[0].transitVisible ? "ON" : "OFF"
   );
-  let t63;
-  let t64;
+  let t61;
+  let t62;
   let div14;
-  let t65_value = formatCount(
+  let t63_value = formatCount(
     /*$layerStats*/
     ctx[1].transit.features
   ) + "";
-  let t65;
-  let t66;
-  let t67_value = formatCount(
+  let t63;
+  let t64;
+  let t65_value = formatCount(
     /*$layerStats*/
     ctx[1].transit.vertices
   ) + "";
-  let t67;
-  let t68;
+  let t65;
+  let t66;
   let button7_disabled_value;
-  let t69;
+  let t67;
   let button8;
   let div15;
   let span28;
-  let t72;
+  let t70;
   let span29;
-  let t73_value = (
+  let t71_value = (
     /*$mapStore*/
     ctx[0].peaksVisible ? "ON" : "OFF"
   );
-  let t73;
-  let t74;
+  let t71;
+  let t72;
   let div16;
-  let t75_value = formatCount(
+  let t73_value = formatCount(
     /*$layerStats*/
     ctx[1].peaks.features
   ) + "";
-  let t75;
-  let t76;
-  let t77_value = formatCount(
+  let t73;
+  let t74;
+  let t75_value = formatCount(
     /*$layerStats*/
     ctx[1].peaks.vertices
   ) + "";
-  let t77;
-  let t78;
+  let t75;
+  let t76;
   let button8_disabled_value;
-  let t79;
+  let t77;
   let div19;
   let h22;
-  let t81;
+  let t79;
   let button9;
   let div18;
   let span30;
-  let t83;
+  let t81;
   let span31;
-  let t84;
-  let t85_value = (
+  let t82;
+  let t83_value = (
     /*$mapStore*/
     ctx[0].panZoomStep + ""
   );
-  let t85;
+  let t83;
   let button9_disabled_value;
   let mounted;
   let dispose;
@@ -10842,136 +10842,136 @@ function create_fragment$2(ctx) {
     c() {
       aside = element("aside");
       div0 = element("div");
-      div0.innerHTML = `<h1 class="panel-title">Layers</h1> <p class="panel-subtitle">SF TIGER/Line GIS</p>`;
-      t3 = space();
+      div0.innerHTML = `<h1 class="panel-title">Layers</h1>`;
+      t1 = space();
       div4 = element("div");
       h20 = element("h2");
       h20.textContent = "Lifecycle & Init";
-      t5 = space();
+      t3 = space();
       button0 = element("button");
       div1 = element("div");
       span0 = element("span");
       span0.textContent = "Decompress Data";
-      t7 = space();
+      t5 = space();
       span1 = element("span");
-      t8 = text(t8_value);
-      t9 = space();
+      t6 = text(t6_value);
+      t7 = space();
       button1 = element("button");
       div2 = element("div");
       span2 = element("span");
       span2.textContent = "Initialize Map";
-      t11 = space();
+      t9 = space();
       span3 = element("span");
-      t12 = text(t12_value);
-      t13 = space();
+      t10 = text(t10_value);
+      t11 = space();
       button2 = element("button");
       div3 = element("div");
       span4 = element("span");
       span4.textContent = "Teardown";
-      t15 = space();
+      t13 = space();
       span5 = element("span");
-      t16 = text(t16_value);
-      t17 = space();
+      t14 = text(t14_value);
+      t15 = space();
       div17 = element("div");
       h21 = element("h2");
-      h21.textContent = "Vector Overlays (CC0)";
-      t19 = space();
+      h21.textContent = "Layers";
+      t17 = space();
       button3 = element("button");
       div5 = element("div");
       span8 = element("span");
       span8.innerHTML = `<span class="layer-icon" title="Parks &amp; Green Spaces"><svg viewBox="0 0 18 18" width="16" height="16" stroke="currentColor" fill="none" stroke-width="1.3"><rect x="1.5" y="1.5" width="15" height="15" stroke-dasharray="2 2" rx="1"></rect><circle cx="9" cy="8" r="3.5"></circle><line x1="9" y1="11.5" x2="9" y2="15" stroke-width="1.5"></line></svg></span> <span>Parks</span>`;
-      t22 = space();
+      t20 = space();
       span9 = element("span");
-      t23 = text(t23_value);
-      t24 = space();
+      t21 = text(t21_value);
+      t22 = space();
       div6 = element("div");
+      t23 = text(t23_value);
+      t24 = text(" feats | ");
       t25 = text(t25_value);
-      t26 = text(" feats | ");
-      t27 = text(t27_value);
-      t28 = text(" verts");
-      t29 = space();
+      t26 = text(" verts");
+      t27 = space();
       button4 = element("button");
       div7 = element("div");
       span12 = element("span");
       span12.innerHTML = `<span class="layer-icon" title="Coastal Hydrography"><svg viewBox="0 0 18 18" width="16" height="16" stroke="currentColor" fill="none" stroke-width="1.4" stroke-linecap="round"><path d="M2 5 C 6 2, 12 8, 16 5"></path><path d="M2 9 C 6 6, 12 12, 16 9"></path><path d="M2 13 C 6 10, 12 16, 16 13"></path></svg></span> <span>Rivers</span>`;
-      t32 = space();
+      t30 = space();
       span13 = element("span");
-      t33 = text(t33_value);
-      t34 = space();
+      t31 = text(t31_value);
+      t32 = space();
       div8 = element("div");
+      t33 = text(t33_value);
+      t34 = text(" feats | ");
       t35 = text(t35_value);
-      t36 = text(" feats | ");
-      t37 = text(t37_value);
-      t38 = text(" verts");
-      t39 = space();
+      t36 = text(" verts");
+      t37 = space();
       button5 = element("button");
       div9 = element("div");
       span16 = element("span");
       span16.innerHTML = `<span class="layer-icon" title="Downtown Buildings"><svg viewBox="0 0 18 18" width="16" height="16" stroke="currentColor" fill="none" stroke-width="1.3"><path d="M3 16 V 7 H 8 V 16"></path><path d="M8 16 V 3 H 15 V 16"></path><line x1="10" y1="6" x2="13" y2="6" stroke-width="1"></line><line x1="10" y1="9" x2="13" y2="9" stroke-width="1"></line><line x1="10" y1="12" x2="13" y2="12" stroke-width="1"></line><line x1="5" y1="10" x2="6" y2="10" stroke-width="1"></line><line x1="5" y1="13" x2="6" y2="13" stroke-width="1"></line></svg></span> <span>Buildings</span>`;
-      t42 = space();
+      t40 = space();
       span17 = element("span");
-      t43 = text(t43_value);
-      t44 = space();
+      t41 = text(t41_value);
+      t42 = space();
       div10 = element("div");
+      t43 = text(t43_value);
+      t44 = text(" feats | ");
       t45 = text(t45_value);
-      t46 = text(" feats | ");
-      t47 = text(t47_value);
-      t48 = text(" verts");
-      t49 = space();
+      t46 = text(" verts");
+      t47 = space();
       button6 = element("button");
       div11 = element("div");
       span20 = element("span");
       span20.innerHTML = `<span class="layer-icon" title="SF Road Networks"><svg viewBox="0 0 18 18" width="16" height="16" stroke="currentColor" fill="none" stroke-width="1.3"><line x1="1" y1="6" x2="17" y2="6"></line><line x1="1" y1="12" x2="17" y2="12"></line><line x1="6" y1="1" x2="6" y2="17"></line><line x1="12" y1="1" x2="12" y2="17"></line><line x1="1" y1="9" x2="17" y2="9" stroke-width="1" stroke-dasharray="2 2"></line><line x1="9" y1="1" x2="9" y2="17" stroke-width="1" stroke-dasharray="2 2"></line></svg></span> <span>Routes</span>`;
-      t52 = space();
+      t50 = space();
       span21 = element("span");
-      t53 = text(t53_value);
-      t54 = space();
+      t51 = text(t51_value);
+      t52 = space();
       div12 = element("div");
+      t53 = text(t53_value);
+      t54 = text(" feats | ");
       t55 = text(t55_value);
-      t56 = text(" feats | ");
-      t57 = text(t57_value);
-      t58 = text(" verts");
-      t59 = space();
+      t56 = text(" verts");
+      t57 = space();
       button7 = element("button");
       div13 = element("div");
       span24 = element("span");
       span24.innerHTML = `<span class="layer-icon" title="Muni Transit"><svg viewBox="0 0 18 18" width="16" height="16" stroke="currentColor" fill="none" stroke-width="1.4"><line x1="6" y1="2" x2="6" y2="16"></line><line x1="12" y1="2" x2="12" y2="16"></line><line x1="4" y1="4" x2="14" y2="4" stroke-width="1.2"></line><line x1="4" y1="8" x2="14" y2="8" stroke-width="1.2"></line><line x1="4" y1="12" x2="14" y2="12" stroke-width="1.2"></line><line x1="4" y1="16" x2="14" y2="16" stroke-width="1.2"></line></svg></span> <span>Transit</span>`;
-      t62 = space();
+      t60 = space();
       span25 = element("span");
-      t63 = text(t63_value);
-      t64 = space();
+      t61 = text(t61_value);
+      t62 = space();
       div14 = element("div");
+      t63 = text(t63_value);
+      t64 = text(" feats | ");
       t65 = text(t65_value);
-      t66 = text(" feats | ");
-      t67 = text(t67_value);
-      t68 = text(" verts");
-      t69 = space();
+      t66 = text(" verts");
+      t67 = space();
       button8 = element("button");
       div15 = element("div");
       span28 = element("span");
       span28.innerHTML = `<span class="layer-icon" title="SF Landmarks &amp; Peaks"><svg viewBox="0 0 18 18" width="16" height="16" stroke="currentColor" fill="none" stroke-width="1.3"><path d="M2 15 L 9 3 L 16 15 Z" stroke-linejoin="round"></path><circle cx="9" cy="8" r="1" fill="currentColor" stroke="none"></circle><line x1="5.5" y1="10.5" x2="12.5" y2="10.5" stroke-width="1" stroke-dasharray="2 2"></line></svg></span> <span>Peaks</span>`;
-      t72 = space();
+      t70 = space();
       span29 = element("span");
-      t73 = text(t73_value);
-      t74 = space();
+      t71 = text(t71_value);
+      t72 = space();
       div16 = element("div");
+      t73 = text(t73_value);
+      t74 = text(" feats | ");
       t75 = text(t75_value);
-      t76 = text(" feats | ");
-      t77 = text(t77_value);
-      t78 = text(" verts");
-      t79 = space();
+      t76 = text(" verts");
+      t77 = space();
       div19 = element("div");
       h22 = element("h2");
       h22.textContent = "Navigation";
-      t81 = space();
+      t79 = space();
       button9 = element("button");
       div18 = element("div");
       span30 = element("span");
       span30.textContent = "Pan / Zoom Step";
-      t83 = space();
+      t81 = space();
       span31 = element("span");
-      t84 = text("Step ");
-      t85 = text(t85_value);
+      t82 = text("Step ");
+      t83 = text(t83_value);
       attr(div0, "class", "panel-header");
       attr(h20, "class", "section-title");
       attr(span1, "class", "status-indicator");
@@ -11112,122 +11112,122 @@ function create_fragment$2(ctx) {
     m(target, anchor) {
       insert(target, aside, anchor);
       append(aside, div0);
-      append(aside, t3);
+      append(aside, t1);
       append(aside, div4);
       append(div4, h20);
-      append(div4, t5);
+      append(div4, t3);
       append(div4, button0);
       append(button0, div1);
       append(div1, span0);
-      append(div1, t7);
+      append(div1, t5);
       append(div1, span1);
-      append(span1, t8);
-      append(div4, t9);
+      append(span1, t6);
+      append(div4, t7);
       append(div4, button1);
       append(button1, div2);
       append(div2, span2);
-      append(div2, t11);
+      append(div2, t9);
       append(div2, span3);
-      append(span3, t12);
-      append(div4, t13);
+      append(span3, t10);
+      append(div4, t11);
       append(div4, button2);
       append(button2, div3);
       append(div3, span4);
-      append(div3, t15);
+      append(div3, t13);
       append(div3, span5);
-      append(span5, t16);
-      append(aside, t17);
+      append(span5, t14);
+      append(aside, t15);
       append(aside, div17);
       append(div17, h21);
-      append(div17, t19);
+      append(div17, t17);
       append(div17, button3);
       append(button3, div5);
       append(div5, span8);
-      append(div5, t22);
+      append(div5, t20);
       append(div5, span9);
-      append(span9, t23);
-      append(button3, t24);
+      append(span9, t21);
+      append(button3, t22);
       append(button3, div6);
+      append(div6, t23);
+      append(div6, t24);
       append(div6, t25);
       append(div6, t26);
-      append(div6, t27);
-      append(div6, t28);
-      append(div17, t29);
+      append(div17, t27);
       append(div17, button4);
       append(button4, div7);
       append(div7, span12);
-      append(div7, t32);
+      append(div7, t30);
       append(div7, span13);
-      append(span13, t33);
-      append(button4, t34);
+      append(span13, t31);
+      append(button4, t32);
       append(button4, div8);
+      append(div8, t33);
+      append(div8, t34);
       append(div8, t35);
       append(div8, t36);
-      append(div8, t37);
-      append(div8, t38);
-      append(div17, t39);
+      append(div17, t37);
       append(div17, button5);
       append(button5, div9);
       append(div9, span16);
-      append(div9, t42);
+      append(div9, t40);
       append(div9, span17);
-      append(span17, t43);
-      append(button5, t44);
+      append(span17, t41);
+      append(button5, t42);
       append(button5, div10);
+      append(div10, t43);
+      append(div10, t44);
       append(div10, t45);
       append(div10, t46);
-      append(div10, t47);
-      append(div10, t48);
-      append(div17, t49);
+      append(div17, t47);
       append(div17, button6);
       append(button6, div11);
       append(div11, span20);
-      append(div11, t52);
+      append(div11, t50);
       append(div11, span21);
-      append(span21, t53);
-      append(button6, t54);
+      append(span21, t51);
+      append(button6, t52);
       append(button6, div12);
+      append(div12, t53);
+      append(div12, t54);
       append(div12, t55);
       append(div12, t56);
-      append(div12, t57);
-      append(div12, t58);
-      append(div17, t59);
+      append(div17, t57);
       append(div17, button7);
       append(button7, div13);
       append(div13, span24);
-      append(div13, t62);
+      append(div13, t60);
       append(div13, span25);
-      append(span25, t63);
-      append(button7, t64);
+      append(span25, t61);
+      append(button7, t62);
       append(button7, div14);
+      append(div14, t63);
+      append(div14, t64);
       append(div14, t65);
       append(div14, t66);
-      append(div14, t67);
-      append(div14, t68);
-      append(div17, t69);
+      append(div17, t67);
       append(div17, button8);
       append(button8, div15);
       append(div15, span28);
-      append(div15, t72);
+      append(div15, t70);
       append(div15, span29);
-      append(span29, t73);
-      append(button8, t74);
+      append(span29, t71);
+      append(button8, t72);
       append(button8, div16);
+      append(div16, t73);
+      append(div16, t74);
       append(div16, t75);
       append(div16, t76);
-      append(div16, t77);
-      append(div16, t78);
-      append(aside, t79);
+      append(aside, t77);
       append(aside, div19);
       append(div19, h22);
-      append(div19, t81);
+      append(div19, t79);
       append(div19, button9);
       append(button9, div18);
       append(div18, span30);
-      append(div18, t83);
+      append(div18, t81);
       append(div18, span31);
-      append(span31, t84);
-      append(span31, t85);
+      append(span31, t82);
+      append(span31, t83);
       if (!mounted) {
         dispose = [
           listen(
@@ -11296,8 +11296,8 @@ function create_fragment$2(ctx) {
     },
     p(ctx2, [dirty]) {
       if (dirty & /*$mapStore*/
-      1 && t8_value !== (t8_value = /*$mapStore*/
-      ctx2[0].decompressed ? "READY" : "OFF")) set_data(t8, t8_value);
+      1 && t6_value !== (t6_value = /*$mapStore*/
+      ctx2[0].decompressed ? "READY" : "OFF")) set_data(t6, t6_value);
       if (dirty & /*$mapStore*/
       1) {
         toggle_class(
@@ -11313,11 +11313,11 @@ function create_fragment$2(ctx) {
         button0.disabled = button0_disabled_value;
       }
       if (dirty & /*$mapStore*/
-      1 && t12_value !== (t12_value = !/*$mapStore*/
+      1 && t10_value !== (t10_value = !/*$mapStore*/
       ctx2[0].decompressed ? "WAIT" : (
         /*$mapStore*/
         ctx2[0].initialized ? "READY" : "OFF"
-      ))) set_data(t12, t12_value);
+      ))) set_data(t10, t10_value);
       if (dirty & /*$mapStore*/
       1) {
         toggle_class(
@@ -11333,9 +11333,9 @@ function create_fragment$2(ctx) {
         button1.disabled = button1_disabled_value;
       }
       if (dirty & /*$mapStore*/
-      1 && t16_value !== (t16_value = !/*$mapStore*/
+      1 && t14_value !== (t14_value = !/*$mapStore*/
       (ctx2[0].initialized || /*$mapStore*/
-      ctx2[0].decompressed) ? "OFF" : "RESET")) set_data(t16, t16_value);
+      ctx2[0].decompressed) ? "OFF" : "RESET")) set_data(t14, t14_value);
       if (dirty & /*$mapStore*/
       1 && button2_disabled_value !== (button2_disabled_value = !/*$mapStore*/
       (ctx2[0].initialized || /*$mapStore*/
@@ -11343,8 +11343,8 @@ function create_fragment$2(ctx) {
         button2.disabled = button2_disabled_value;
       }
       if (dirty & /*$mapStore*/
-      1 && t23_value !== (t23_value = /*$mapStore*/
-      ctx2[0].parksVisible ? "ON" : "OFF")) set_data(t23, t23_value);
+      1 && t21_value !== (t21_value = /*$mapStore*/
+      ctx2[0].parksVisible ? "ON" : "OFF")) set_data(t21, t21_value);
       if (dirty & /*$mapStore*/
       1) {
         toggle_class(
@@ -11355,15 +11355,15 @@ function create_fragment$2(ctx) {
         );
       }
       if (dirty & /*$layerStats*/
-      2 && t25_value !== (t25_value = formatCount(
+      2 && t23_value !== (t23_value = formatCount(
         /*$layerStats*/
         ctx2[1].parks.features
-      ) + "")) set_data(t25, t25_value);
+      ) + "")) set_data(t23, t23_value);
       if (dirty & /*$layerStats*/
-      2 && t27_value !== (t27_value = formatCount(
+      2 && t25_value !== (t25_value = formatCount(
         /*$layerStats*/
         ctx2[1].parks.vertices
-      ) + "")) set_data(t27, t27_value);
+      ) + "")) set_data(t25, t25_value);
       if (dirty & /*$mapStore*/
       1 && button3_disabled_value !== (button3_disabled_value = !/*$mapStore*/
       (ctx2[0].initialized && /*$mapStore*/
@@ -11371,8 +11371,8 @@ function create_fragment$2(ctx) {
         button3.disabled = button3_disabled_value;
       }
       if (dirty & /*$mapStore*/
-      1 && t33_value !== (t33_value = /*$mapStore*/
-      ctx2[0].riversVisible ? "ON" : "OFF")) set_data(t33, t33_value);
+      1 && t31_value !== (t31_value = /*$mapStore*/
+      ctx2[0].riversVisible ? "ON" : "OFF")) set_data(t31, t31_value);
       if (dirty & /*$mapStore*/
       1) {
         toggle_class(
@@ -11383,15 +11383,15 @@ function create_fragment$2(ctx) {
         );
       }
       if (dirty & /*$layerStats*/
-      2 && t35_value !== (t35_value = formatCount(
+      2 && t33_value !== (t33_value = formatCount(
         /*$layerStats*/
         ctx2[1].rivers.features
-      ) + "")) set_data(t35, t35_value);
+      ) + "")) set_data(t33, t33_value);
       if (dirty & /*$layerStats*/
-      2 && t37_value !== (t37_value = formatCount(
+      2 && t35_value !== (t35_value = formatCount(
         /*$layerStats*/
         ctx2[1].rivers.vertices
-      ) + "")) set_data(t37, t37_value);
+      ) + "")) set_data(t35, t35_value);
       if (dirty & /*$mapStore*/
       1 && button4_disabled_value !== (button4_disabled_value = !/*$mapStore*/
       (ctx2[0].initialized && /*$mapStore*/
@@ -11399,8 +11399,8 @@ function create_fragment$2(ctx) {
         button4.disabled = button4_disabled_value;
       }
       if (dirty & /*$mapStore*/
-      1 && t43_value !== (t43_value = /*$mapStore*/
-      ctx2[0].buildingsVisible ? "ON" : "OFF")) set_data(t43, t43_value);
+      1 && t41_value !== (t41_value = /*$mapStore*/
+      ctx2[0].buildingsVisible ? "ON" : "OFF")) set_data(t41, t41_value);
       if (dirty & /*$mapStore*/
       1) {
         toggle_class(
@@ -11411,15 +11411,15 @@ function create_fragment$2(ctx) {
         );
       }
       if (dirty & /*$layerStats*/
-      2 && t45_value !== (t45_value = formatCount(
+      2 && t43_value !== (t43_value = formatCount(
         /*$layerStats*/
         ctx2[1].buildings.features
-      ) + "")) set_data(t45, t45_value);
+      ) + "")) set_data(t43, t43_value);
       if (dirty & /*$layerStats*/
-      2 && t47_value !== (t47_value = formatCount(
+      2 && t45_value !== (t45_value = formatCount(
         /*$layerStats*/
         ctx2[1].buildings.vertices
-      ) + "")) set_data(t47, t47_value);
+      ) + "")) set_data(t45, t45_value);
       if (dirty & /*$mapStore*/
       1 && button5_disabled_value !== (button5_disabled_value = !/*$mapStore*/
       (ctx2[0].initialized && /*$mapStore*/
@@ -11427,8 +11427,8 @@ function create_fragment$2(ctx) {
         button5.disabled = button5_disabled_value;
       }
       if (dirty & /*$mapStore*/
-      1 && t53_value !== (t53_value = /*$mapStore*/
-      ctx2[0].routesVisible ? "ON" : "OFF")) set_data(t53, t53_value);
+      1 && t51_value !== (t51_value = /*$mapStore*/
+      ctx2[0].routesVisible ? "ON" : "OFF")) set_data(t51, t51_value);
       if (dirty & /*$mapStore*/
       1) {
         toggle_class(
@@ -11439,15 +11439,15 @@ function create_fragment$2(ctx) {
         );
       }
       if (dirty & /*$layerStats*/
-      2 && t55_value !== (t55_value = formatCount(
+      2 && t53_value !== (t53_value = formatCount(
         /*$layerStats*/
         ctx2[1].routes.features
-      ) + "")) set_data(t55, t55_value);
+      ) + "")) set_data(t53, t53_value);
       if (dirty & /*$layerStats*/
-      2 && t57_value !== (t57_value = formatCount(
+      2 && t55_value !== (t55_value = formatCount(
         /*$layerStats*/
         ctx2[1].routes.vertices
-      ) + "")) set_data(t57, t57_value);
+      ) + "")) set_data(t55, t55_value);
       if (dirty & /*$mapStore*/
       1 && button6_disabled_value !== (button6_disabled_value = !/*$mapStore*/
       (ctx2[0].initialized && /*$mapStore*/
@@ -11455,8 +11455,8 @@ function create_fragment$2(ctx) {
         button6.disabled = button6_disabled_value;
       }
       if (dirty & /*$mapStore*/
-      1 && t63_value !== (t63_value = /*$mapStore*/
-      ctx2[0].transitVisible ? "ON" : "OFF")) set_data(t63, t63_value);
+      1 && t61_value !== (t61_value = /*$mapStore*/
+      ctx2[0].transitVisible ? "ON" : "OFF")) set_data(t61, t61_value);
       if (dirty & /*$mapStore*/
       1) {
         toggle_class(
@@ -11467,15 +11467,15 @@ function create_fragment$2(ctx) {
         );
       }
       if (dirty & /*$layerStats*/
-      2 && t65_value !== (t65_value = formatCount(
+      2 && t63_value !== (t63_value = formatCount(
         /*$layerStats*/
         ctx2[1].transit.features
-      ) + "")) set_data(t65, t65_value);
+      ) + "")) set_data(t63, t63_value);
       if (dirty & /*$layerStats*/
-      2 && t67_value !== (t67_value = formatCount(
+      2 && t65_value !== (t65_value = formatCount(
         /*$layerStats*/
         ctx2[1].transit.vertices
-      ) + "")) set_data(t67, t67_value);
+      ) + "")) set_data(t65, t65_value);
       if (dirty & /*$mapStore*/
       1 && button7_disabled_value !== (button7_disabled_value = !/*$mapStore*/
       (ctx2[0].initialized && /*$mapStore*/
@@ -11483,8 +11483,8 @@ function create_fragment$2(ctx) {
         button7.disabled = button7_disabled_value;
       }
       if (dirty & /*$mapStore*/
-      1 && t73_value !== (t73_value = /*$mapStore*/
-      ctx2[0].peaksVisible ? "ON" : "OFF")) set_data(t73, t73_value);
+      1 && t71_value !== (t71_value = /*$mapStore*/
+      ctx2[0].peaksVisible ? "ON" : "OFF")) set_data(t71, t71_value);
       if (dirty & /*$mapStore*/
       1) {
         toggle_class(
@@ -11495,15 +11495,15 @@ function create_fragment$2(ctx) {
         );
       }
       if (dirty & /*$layerStats*/
-      2 && t75_value !== (t75_value = formatCount(
+      2 && t73_value !== (t73_value = formatCount(
         /*$layerStats*/
         ctx2[1].peaks.features
-      ) + "")) set_data(t75, t75_value);
+      ) + "")) set_data(t73, t73_value);
       if (dirty & /*$layerStats*/
-      2 && t77_value !== (t77_value = formatCount(
+      2 && t75_value !== (t75_value = formatCount(
         /*$layerStats*/
         ctx2[1].peaks.vertices
-      ) + "")) set_data(t77, t77_value);
+      ) + "")) set_data(t75, t75_value);
       if (dirty & /*$mapStore*/
       1 && button8_disabled_value !== (button8_disabled_value = !/*$mapStore*/
       (ctx2[0].initialized && /*$mapStore*/
@@ -11511,8 +11511,8 @@ function create_fragment$2(ctx) {
         button8.disabled = button8_disabled_value;
       }
       if (dirty & /*$mapStore*/
-      1 && t85_value !== (t85_value = /*$mapStore*/
-      ctx2[0].panZoomStep + "")) set_data(t85, t85_value);
+      1 && t83_value !== (t83_value = /*$mapStore*/
+      ctx2[0].panZoomStep + "")) set_data(t83, t83_value);
       if (dirty & /*$mapStore*/
       1 && button9_disabled_value !== (button9_disabled_value = !/*$mapStore*/
       (ctx2[0].initialized && /*$mapStore*/
