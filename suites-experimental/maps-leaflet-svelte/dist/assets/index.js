@@ -11022,7 +11022,7 @@ function create_fragment$2(ctx) {
       button0 = element("button");
       div1 = element("div");
       span0 = element("span");
-      span0.textContent = "Decompress Data";
+      span0.textContent = "Load";
       t5 = space();
       span1 = element("span");
       t6 = text(t6_value);
@@ -11030,7 +11030,7 @@ function create_fragment$2(ctx) {
       button1 = element("button");
       div2 = element("div");
       span2 = element("span");
-      span2.textContent = "Initialize Map";
+      span2.textContent = "Initialize";
       t9 = space();
       span3 = element("span");
       t10 = text(t10_value);

@@ -27,7 +27,7 @@
             on:click={() => benchmarkDriver.decompressAndParse()}
         >
             <div class="btn-top-row">
-                <span>Decompress Data</span>
+                <span>Load</span>
                 <span class="status-indicator" class:status-active={$mapStore.decompressed}>
                     {$mapStore.decompressed ? "READY" : "OFF"}
                 </span>
@@ -40,7 +40,7 @@
             on:click={() => benchmarkDriver.initializeMap()}
         >
             <div class="btn-top-row">
-                <span>Initialize Map</span>
+                <span>Initialize</span>
                 <span class="status-indicator" class:status-active={$mapStore.initialized}>
                     {!$mapStore.decompressed ? "WAIT" : $mapStore.initialized ? "READY" : "OFF"}
                 </span>
