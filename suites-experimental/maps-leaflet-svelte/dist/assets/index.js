@@ -395,6 +395,14 @@ const mapStore = writable({
   panZoomStep: 0,
   activeStep: 0
 });
+const layerStats = writable({
+  routes: { features: 0, vertices: 0 },
+  rivers: { features: 0, vertices: 0 },
+  peaks: { features: 0, vertices: 0 },
+  parks: { features: 0, vertices: 0 },
+  buildings: { features: 0, vertices: 0 },
+  transit: { features: 0, vertices: 0 }
+});
 var commonjsGlobal = typeof globalThis !== "undefined" ? globalThis : typeof window !== "undefined" ? window : typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : {};
 function getDefaultExportFromCjs(x) {
   return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, "default") ? x["default"] : x;
@@ -10066,12 +10074,6 @@ function computeLayerStats(data) {
     vertices
   };
 }
-let routesStats = { features: 0, vertices: 0 };
-let riversStats = { features: 0, vertices: 0 };
-let peaksStats = { features: 0, vertices: 0 };
-let parksStats = { features: 0, vertices: 0 };
-let buildingsStats = { features: 0, vertices: 0 };
-let transitStats = { features: 0, vertices: 0 };
 async function loadRawBuffers() {
   if (rawBuffers.routes && rawBuffers.rivers && rawBuffers.peaks && rawBuffers.parks && rawBuffers.buildings && rawBuffers.transit)
     return;
@@ -10116,12 +10118,14 @@ async function decompressAndParseDatasets() {
   parksData = parks;
   buildingsData = buildings;
   transitData = transit;
-  routesStats = computeLayerStats(routesData);
-  riversStats = computeLayerStats(riversData);
-  peaksStats = computeLayerStats(peaksData);
-  parksStats = computeLayerStats(parksData);
-  buildingsStats = computeLayerStats(buildingsData);
-  transitStats = computeLayerStats(transitData);
+  layerStats.set({
+    routes: computeLayerStats(routesData),
+    rivers: computeLayerStats(riversData),
+    peaks: computeLayerStats(peaksData),
+    parks: computeLayerStats(parksData),
+    buildings: computeLayerStats(buildingsData),
+    transit: computeLayerStats(transitData)
+  });
 }
 function resetParsedDatasets() {
   routesData = null;
@@ -10130,12 +10134,14 @@ function resetParsedDatasets() {
   parksData = null;
   buildingsData = null;
   transitData = null;
-  routesStats = { features: 0, vertices: 0 };
-  riversStats = { features: 0, vertices: 0 };
-  peaksStats = { features: 0, vertices: 0 };
-  parksStats = { features: 0, vertices: 0 };
-  buildingsStats = { features: 0, vertices: 0 };
-  transitStats = { features: 0, vertices: 0 };
+  layerStats.set({
+    routes: { features: 0, vertices: 0 },
+    rivers: { features: 0, vertices: 0 },
+    peaks: { features: 0, vertices: 0 },
+    parks: { features: 0, vertices: 0 },
+    buildings: { features: 0, vertices: 0 },
+    transit: { features: 0, vertices: 0 }
+  });
 }
 function createRouteLayerGroup() {
   const renderer = L$1.canvas({ padding: 0.5 });
@@ -10286,8 +10292,29 @@ class BenchmarkDriver {
       console.error("Map container not registered with BenchmarkDriver.");
       return;
     }
-    if (this.map)
-      this.teardown();
+    if (this.map) {
+      if (this.routeGroup && this.map.hasLayer(this.routeGroup))
+        this.map.removeLayer(this.routeGroup);
+      if (this.riverGroup && this.map.hasLayer(this.riverGroup))
+        this.map.removeLayer(this.riverGroup);
+      if (this.peakGroup && this.map.hasLayer(this.peakGroup))
+        this.map.removeLayer(this.peakGroup);
+      if (this.parkGroup && this.map.hasLayer(this.parkGroup))
+        this.map.removeLayer(this.parkGroup);
+      if (this.buildingGroup && this.map.hasLayer(this.buildingGroup))
+        this.map.removeLayer(this.buildingGroup);
+      if (this.transitGroup && this.map.hasLayer(this.transitGroup))
+        this.map.removeLayer(this.transitGroup);
+      this.map.remove();
+      this.map = null;
+      this.topographicLayer = null;
+      this.routeGroup = null;
+      this.riverGroup = null;
+      this.peakGroup = null;
+      this.parkGroup = null;
+      this.buildingGroup = null;
+      this.transitGroup = null;
+    }
     this.map = L$1.map(this.mapContainer, {
       center: [37.7749, -122.4194],
       zoom: 13,
@@ -10609,19 +10636,31 @@ function create_fragment$2(ctx) {
     ctx[0].decompressed ? "READY" : "OFF"
   );
   let t8;
+  let button0_disabled_value;
   let t9;
   let button1;
   let div2;
   let span2;
   let t11;
   let span3;
-  let t12_value = (
+  let t12_value = !/*$mapStore*/
+  ctx[0].decompressed ? "WAIT" : (
     /*$mapStore*/
     ctx[0].initialized ? "READY" : "OFF"
   );
   let t12;
+  let button1_disabled_value;
   let t13;
   let button2;
+  let div3;
+  let span4;
+  let t15;
+  let span5;
+  let t16_value = !/*$mapStore*/
+  (ctx[0].initialized || /*$mapStore*/
+  ctx[0].decompressed) ? "OFF" : "RESET";
+  let t16;
+  let button2_disabled_value;
   let t17;
   let div17;
   let h21;
@@ -10638,6 +10677,18 @@ function create_fragment$2(ctx) {
   let t23;
   let t24;
   let div6;
+  let t25_value = formatCount(
+    /*$layerStats*/
+    ctx[1].parks.features
+  ) + "";
+  let t25;
+  let t26;
+  let t27_value = formatCount(
+    /*$layerStats*/
+    ctx[1].parks.vertices
+  ) + "";
+  let t27;
+  let t28;
   let button3_disabled_value;
   let t29;
   let button4;
@@ -10652,6 +10703,18 @@ function create_fragment$2(ctx) {
   let t33;
   let t34;
   let div8;
+  let t35_value = formatCount(
+    /*$layerStats*/
+    ctx[1].rivers.features
+  ) + "";
+  let t35;
+  let t36;
+  let t37_value = formatCount(
+    /*$layerStats*/
+    ctx[1].rivers.vertices
+  ) + "";
+  let t37;
+  let t38;
   let button4_disabled_value;
   let t39;
   let button5;
@@ -10666,6 +10729,18 @@ function create_fragment$2(ctx) {
   let t43;
   let t44;
   let div10;
+  let t45_value = formatCount(
+    /*$layerStats*/
+    ctx[1].buildings.features
+  ) + "";
+  let t45;
+  let t46;
+  let t47_value = formatCount(
+    /*$layerStats*/
+    ctx[1].buildings.vertices
+  ) + "";
+  let t47;
+  let t48;
   let button5_disabled_value;
   let t49;
   let button6;
@@ -10680,6 +10755,18 @@ function create_fragment$2(ctx) {
   let t53;
   let t54;
   let div12;
+  let t55_value = formatCount(
+    /*$layerStats*/
+    ctx[1].routes.features
+  ) + "";
+  let t55;
+  let t56;
+  let t57_value = formatCount(
+    /*$layerStats*/
+    ctx[1].routes.vertices
+  ) + "";
+  let t57;
+  let t58;
   let button6_disabled_value;
   let t59;
   let button7;
@@ -10694,6 +10781,18 @@ function create_fragment$2(ctx) {
   let t63;
   let t64;
   let div14;
+  let t65_value = formatCount(
+    /*$layerStats*/
+    ctx[1].transit.features
+  ) + "";
+  let t65;
+  let t66;
+  let t67_value = formatCount(
+    /*$layerStats*/
+    ctx[1].transit.vertices
+  ) + "";
+  let t67;
+  let t68;
   let button7_disabled_value;
   let t69;
   let button8;
@@ -10708,6 +10807,18 @@ function create_fragment$2(ctx) {
   let t73;
   let t74;
   let div16;
+  let t75_value = formatCount(
+    /*$layerStats*/
+    ctx[1].peaks.features
+  ) + "";
+  let t75;
+  let t76;
+  let t77_value = formatCount(
+    /*$layerStats*/
+    ctx[1].peaks.vertices
+  ) + "";
+  let t77;
+  let t78;
   let button8_disabled_value;
   let t79;
   let div19;
@@ -10754,7 +10865,12 @@ function create_fragment$2(ctx) {
       t12 = text(t12_value);
       t13 = space();
       button2 = element("button");
-      button2.innerHTML = `<div class="btn-top-row"><span>Teardown</span> <span class="status-indicator">RESET</span></div>`;
+      div3 = element("div");
+      span4 = element("span");
+      span4.textContent = "Teardown";
+      t15 = space();
+      span5 = element("span");
+      t16 = text(t16_value);
       t17 = space();
       div17 = element("div");
       h21 = element("h2");
@@ -10769,7 +10885,10 @@ function create_fragment$2(ctx) {
       t23 = text(t23_value);
       t24 = space();
       div6 = element("div");
-      div6.textContent = `${formatCount(parksStats.features)} feats | ${formatCount(parksStats.vertices)} verts`;
+      t25 = text(t25_value);
+      t26 = text(" feats | ");
+      t27 = text(t27_value);
+      t28 = text(" verts");
       t29 = space();
       button4 = element("button");
       div7 = element("div");
@@ -10780,7 +10899,10 @@ function create_fragment$2(ctx) {
       t33 = text(t33_value);
       t34 = space();
       div8 = element("div");
-      div8.textContent = `${formatCount(riversStats.features)} feats | ${formatCount(riversStats.vertices)} verts`;
+      t35 = text(t35_value);
+      t36 = text(" feats | ");
+      t37 = text(t37_value);
+      t38 = text(" verts");
       t39 = space();
       button5 = element("button");
       div9 = element("div");
@@ -10791,7 +10913,10 @@ function create_fragment$2(ctx) {
       t43 = text(t43_value);
       t44 = space();
       div10 = element("div");
-      div10.textContent = `${formatCount(buildingsStats.features)} feats | ${formatCount(buildingsStats.vertices)} verts`;
+      t45 = text(t45_value);
+      t46 = text(" feats | ");
+      t47 = text(t47_value);
+      t48 = text(" verts");
       t49 = space();
       button6 = element("button");
       div11 = element("div");
@@ -10802,7 +10927,10 @@ function create_fragment$2(ctx) {
       t53 = text(t53_value);
       t54 = space();
       div12 = element("div");
-      div12.textContent = `${formatCount(routesStats.features)} feats | ${formatCount(routesStats.vertices)} verts`;
+      t55 = text(t55_value);
+      t56 = text(" feats | ");
+      t57 = text(t57_value);
+      t58 = text(" verts");
       t59 = space();
       button7 = element("button");
       div13 = element("div");
@@ -10813,7 +10941,10 @@ function create_fragment$2(ctx) {
       t63 = text(t63_value);
       t64 = space();
       div14 = element("div");
-      div14.textContent = `${formatCount(transitStats.features)} feats | ${formatCount(transitStats.vertices)} verts`;
+      t65 = text(t65_value);
+      t66 = text(" feats | ");
+      t67 = text(t67_value);
+      t68 = text(" verts");
       t69 = space();
       button8 = element("button");
       div15 = element("div");
@@ -10824,7 +10955,10 @@ function create_fragment$2(ctx) {
       t73 = text(t73_value);
       t74 = space();
       div16 = element("div");
-      div16.textContent = `${formatCount(peaksStats.features)} feats | ${formatCount(peaksStats.vertices)} verts`;
+      t75 = text(t75_value);
+      t76 = text(" feats | ");
+      t77 = text(t77_value);
+      t78 = text(" verts");
       t79 = space();
       div19 = element("div");
       h22 = element("h2");
@@ -10850,6 +10984,8 @@ function create_fragment$2(ctx) {
       attr(div1, "class", "btn-top-row");
       attr(button0, "id", "btn-decompress-data");
       attr(button0, "class", "control-btn");
+      button0.disabled = button0_disabled_value = /*$mapStore*/
+      ctx[0].decompressed;
       attr(span3, "class", "status-indicator");
       toggle_class(
         span3,
@@ -10860,8 +10996,15 @@ function create_fragment$2(ctx) {
       attr(div2, "class", "btn-top-row");
       attr(button1, "id", "btn-init-map");
       attr(button1, "class", "control-btn");
+      button1.disabled = button1_disabled_value = !/*$mapStore*/
+      ctx[0].decompressed;
+      attr(span5, "class", "status-indicator");
+      attr(div3, "class", "btn-top-row");
       attr(button2, "id", "btn-teardown");
       attr(button2, "class", "control-btn");
+      button2.disabled = button2_disabled_value = !/*$mapStore*/
+      (ctx[0].initialized || /*$mapStore*/
+      ctx[0].decompressed);
       attr(div4, "class", "section-card");
       attr(h21, "class", "section-title");
       attr(span8, "class", "btn-label-group");
@@ -10877,7 +11020,8 @@ function create_fragment$2(ctx) {
       attr(button3, "id", "btn-toggle-parks");
       attr(button3, "class", "control-btn");
       button3.disabled = button3_disabled_value = !/*$mapStore*/
-      ctx[0].initialized;
+      (ctx[0].initialized && /*$mapStore*/
+      ctx[0].decompressed);
       attr(span12, "class", "btn-label-group");
       attr(span13, "class", "status-indicator");
       toggle_class(
@@ -10891,7 +11035,8 @@ function create_fragment$2(ctx) {
       attr(button4, "id", "btn-toggle-rivers");
       attr(button4, "class", "control-btn");
       button4.disabled = button4_disabled_value = !/*$mapStore*/
-      ctx[0].initialized;
+      (ctx[0].initialized && /*$mapStore*/
+      ctx[0].decompressed);
       attr(span16, "class", "btn-label-group");
       attr(span17, "class", "status-indicator");
       toggle_class(
@@ -10905,7 +11050,8 @@ function create_fragment$2(ctx) {
       attr(button5, "id", "btn-toggle-buildings");
       attr(button5, "class", "control-btn");
       button5.disabled = button5_disabled_value = !/*$mapStore*/
-      ctx[0].initialized;
+      (ctx[0].initialized && /*$mapStore*/
+      ctx[0].decompressed);
       attr(span20, "class", "btn-label-group");
       attr(span21, "class", "status-indicator");
       toggle_class(
@@ -10919,7 +11065,8 @@ function create_fragment$2(ctx) {
       attr(button6, "id", "btn-toggle-routes");
       attr(button6, "class", "control-btn");
       button6.disabled = button6_disabled_value = !/*$mapStore*/
-      ctx[0].initialized;
+      (ctx[0].initialized && /*$mapStore*/
+      ctx[0].decompressed);
       attr(span24, "class", "btn-label-group");
       attr(span25, "class", "status-indicator");
       toggle_class(
@@ -10933,7 +11080,8 @@ function create_fragment$2(ctx) {
       attr(button7, "id", "btn-toggle-transit");
       attr(button7, "class", "control-btn");
       button7.disabled = button7_disabled_value = !/*$mapStore*/
-      ctx[0].initialized;
+      (ctx[0].initialized && /*$mapStore*/
+      ctx[0].decompressed);
       attr(span28, "class", "btn-label-group");
       attr(span29, "class", "status-indicator");
       toggle_class(
@@ -10947,7 +11095,8 @@ function create_fragment$2(ctx) {
       attr(button8, "id", "btn-toggle-peaks");
       attr(button8, "class", "control-btn");
       button8.disabled = button8_disabled_value = !/*$mapStore*/
-      ctx[0].initialized;
+      (ctx[0].initialized && /*$mapStore*/
+      ctx[0].decompressed);
       attr(div17, "class", "section-card");
       attr(h22, "class", "section-title");
       attr(span31, "class", "status-indicator");
@@ -10955,7 +11104,8 @@ function create_fragment$2(ctx) {
       attr(button9, "id", "btn-pan-zoom");
       attr(button9, "class", "control-btn");
       button9.disabled = button9_disabled_value = !/*$mapStore*/
-      ctx[0].initialized;
+      (ctx[0].initialized && /*$mapStore*/
+      ctx[0].decompressed);
       attr(div19, "class", "section-card");
       attr(aside, "class", "sidebar");
     },
@@ -10981,6 +11131,11 @@ function create_fragment$2(ctx) {
       append(span3, t12);
       append(div4, t13);
       append(div4, button2);
+      append(button2, div3);
+      append(div3, span4);
+      append(div3, t15);
+      append(div3, span5);
+      append(span5, t16);
       append(aside, t17);
       append(aside, div17);
       append(div17, h21);
@@ -10993,6 +11148,10 @@ function create_fragment$2(ctx) {
       append(span9, t23);
       append(button3, t24);
       append(button3, div6);
+      append(div6, t25);
+      append(div6, t26);
+      append(div6, t27);
+      append(div6, t28);
       append(div17, t29);
       append(div17, button4);
       append(button4, div7);
@@ -11002,6 +11161,10 @@ function create_fragment$2(ctx) {
       append(span13, t33);
       append(button4, t34);
       append(button4, div8);
+      append(div8, t35);
+      append(div8, t36);
+      append(div8, t37);
+      append(div8, t38);
       append(div17, t39);
       append(div17, button5);
       append(button5, div9);
@@ -11011,6 +11174,10 @@ function create_fragment$2(ctx) {
       append(span17, t43);
       append(button5, t44);
       append(button5, div10);
+      append(div10, t45);
+      append(div10, t46);
+      append(div10, t47);
+      append(div10, t48);
       append(div17, t49);
       append(div17, button6);
       append(button6, div11);
@@ -11020,6 +11187,10 @@ function create_fragment$2(ctx) {
       append(span21, t53);
       append(button6, t54);
       append(button6, div12);
+      append(div12, t55);
+      append(div12, t56);
+      append(div12, t57);
+      append(div12, t58);
       append(div17, t59);
       append(div17, button7);
       append(button7, div13);
@@ -11029,6 +11200,10 @@ function create_fragment$2(ctx) {
       append(span25, t63);
       append(button7, t64);
       append(button7, div14);
+      append(div14, t65);
+      append(div14, t66);
+      append(div14, t67);
+      append(div14, t68);
       append(div17, t69);
       append(div17, button8);
       append(button8, div15);
@@ -11038,6 +11213,10 @@ function create_fragment$2(ctx) {
       append(span29, t73);
       append(button8, t74);
       append(button8, div16);
+      append(div16, t75);
+      append(div16, t76);
+      append(div16, t77);
+      append(div16, t78);
       append(aside, t79);
       append(aside, div19);
       append(div19, h22);
@@ -11055,61 +11234,61 @@ function create_fragment$2(ctx) {
             button0,
             "click",
             /*click_handler*/
-            ctx[1]
+            ctx[2]
           ),
           listen(
             button1,
             "click",
             /*click_handler_1*/
-            ctx[2]
+            ctx[3]
           ),
           listen(
             button2,
             "click",
             /*click_handler_2*/
-            ctx[3]
+            ctx[4]
           ),
           listen(
             button3,
             "click",
             /*click_handler_3*/
-            ctx[4]
+            ctx[5]
           ),
           listen(
             button4,
             "click",
             /*click_handler_4*/
-            ctx[5]
+            ctx[6]
           ),
           listen(
             button5,
             "click",
             /*click_handler_5*/
-            ctx[6]
+            ctx[7]
           ),
           listen(
             button6,
             "click",
             /*click_handler_6*/
-            ctx[7]
+            ctx[8]
           ),
           listen(
             button7,
             "click",
             /*click_handler_7*/
-            ctx[8]
+            ctx[9]
           ),
           listen(
             button8,
             "click",
             /*click_handler_8*/
-            ctx[9]
+            ctx[10]
           ),
           listen(
             button9,
             "click",
             /*click_handler_9*/
-            ctx[10]
+            ctx[11]
           )
         ];
         mounted = true;
@@ -11129,8 +11308,16 @@ function create_fragment$2(ctx) {
         );
       }
       if (dirty & /*$mapStore*/
-      1 && t12_value !== (t12_value = /*$mapStore*/
-      ctx2[0].initialized ? "READY" : "OFF")) set_data(t12, t12_value);
+      1 && button0_disabled_value !== (button0_disabled_value = /*$mapStore*/
+      ctx2[0].decompressed)) {
+        button0.disabled = button0_disabled_value;
+      }
+      if (dirty & /*$mapStore*/
+      1 && t12_value !== (t12_value = !/*$mapStore*/
+      ctx2[0].decompressed ? "WAIT" : (
+        /*$mapStore*/
+        ctx2[0].initialized ? "READY" : "OFF"
+      ))) set_data(t12, t12_value);
       if (dirty & /*$mapStore*/
       1) {
         toggle_class(
@@ -11139,6 +11326,21 @@ function create_fragment$2(ctx) {
           /*$mapStore*/
           ctx2[0].initialized
         );
+      }
+      if (dirty & /*$mapStore*/
+      1 && button1_disabled_value !== (button1_disabled_value = !/*$mapStore*/
+      ctx2[0].decompressed)) {
+        button1.disabled = button1_disabled_value;
+      }
+      if (dirty & /*$mapStore*/
+      1 && t16_value !== (t16_value = !/*$mapStore*/
+      (ctx2[0].initialized || /*$mapStore*/
+      ctx2[0].decompressed) ? "OFF" : "RESET")) set_data(t16, t16_value);
+      if (dirty & /*$mapStore*/
+      1 && button2_disabled_value !== (button2_disabled_value = !/*$mapStore*/
+      (ctx2[0].initialized || /*$mapStore*/
+      ctx2[0].decompressed))) {
+        button2.disabled = button2_disabled_value;
       }
       if (dirty & /*$mapStore*/
       1 && t23_value !== (t23_value = /*$mapStore*/
@@ -11152,9 +11354,20 @@ function create_fragment$2(ctx) {
           ctx2[0].parksVisible
         );
       }
+      if (dirty & /*$layerStats*/
+      2 && t25_value !== (t25_value = formatCount(
+        /*$layerStats*/
+        ctx2[1].parks.features
+      ) + "")) set_data(t25, t25_value);
+      if (dirty & /*$layerStats*/
+      2 && t27_value !== (t27_value = formatCount(
+        /*$layerStats*/
+        ctx2[1].parks.vertices
+      ) + "")) set_data(t27, t27_value);
       if (dirty & /*$mapStore*/
       1 && button3_disabled_value !== (button3_disabled_value = !/*$mapStore*/
-      ctx2[0].initialized)) {
+      (ctx2[0].initialized && /*$mapStore*/
+      ctx2[0].decompressed))) {
         button3.disabled = button3_disabled_value;
       }
       if (dirty & /*$mapStore*/
@@ -11169,9 +11382,20 @@ function create_fragment$2(ctx) {
           ctx2[0].riversVisible
         );
       }
+      if (dirty & /*$layerStats*/
+      2 && t35_value !== (t35_value = formatCount(
+        /*$layerStats*/
+        ctx2[1].rivers.features
+      ) + "")) set_data(t35, t35_value);
+      if (dirty & /*$layerStats*/
+      2 && t37_value !== (t37_value = formatCount(
+        /*$layerStats*/
+        ctx2[1].rivers.vertices
+      ) + "")) set_data(t37, t37_value);
       if (dirty & /*$mapStore*/
       1 && button4_disabled_value !== (button4_disabled_value = !/*$mapStore*/
-      ctx2[0].initialized)) {
+      (ctx2[0].initialized && /*$mapStore*/
+      ctx2[0].decompressed))) {
         button4.disabled = button4_disabled_value;
       }
       if (dirty & /*$mapStore*/
@@ -11186,9 +11410,20 @@ function create_fragment$2(ctx) {
           ctx2[0].buildingsVisible
         );
       }
+      if (dirty & /*$layerStats*/
+      2 && t45_value !== (t45_value = formatCount(
+        /*$layerStats*/
+        ctx2[1].buildings.features
+      ) + "")) set_data(t45, t45_value);
+      if (dirty & /*$layerStats*/
+      2 && t47_value !== (t47_value = formatCount(
+        /*$layerStats*/
+        ctx2[1].buildings.vertices
+      ) + "")) set_data(t47, t47_value);
       if (dirty & /*$mapStore*/
       1 && button5_disabled_value !== (button5_disabled_value = !/*$mapStore*/
-      ctx2[0].initialized)) {
+      (ctx2[0].initialized && /*$mapStore*/
+      ctx2[0].decompressed))) {
         button5.disabled = button5_disabled_value;
       }
       if (dirty & /*$mapStore*/
@@ -11203,9 +11438,20 @@ function create_fragment$2(ctx) {
           ctx2[0].routesVisible
         );
       }
+      if (dirty & /*$layerStats*/
+      2 && t55_value !== (t55_value = formatCount(
+        /*$layerStats*/
+        ctx2[1].routes.features
+      ) + "")) set_data(t55, t55_value);
+      if (dirty & /*$layerStats*/
+      2 && t57_value !== (t57_value = formatCount(
+        /*$layerStats*/
+        ctx2[1].routes.vertices
+      ) + "")) set_data(t57, t57_value);
       if (dirty & /*$mapStore*/
       1 && button6_disabled_value !== (button6_disabled_value = !/*$mapStore*/
-      ctx2[0].initialized)) {
+      (ctx2[0].initialized && /*$mapStore*/
+      ctx2[0].decompressed))) {
         button6.disabled = button6_disabled_value;
       }
       if (dirty & /*$mapStore*/
@@ -11220,9 +11466,20 @@ function create_fragment$2(ctx) {
           ctx2[0].transitVisible
         );
       }
+      if (dirty & /*$layerStats*/
+      2 && t65_value !== (t65_value = formatCount(
+        /*$layerStats*/
+        ctx2[1].transit.features
+      ) + "")) set_data(t65, t65_value);
+      if (dirty & /*$layerStats*/
+      2 && t67_value !== (t67_value = formatCount(
+        /*$layerStats*/
+        ctx2[1].transit.vertices
+      ) + "")) set_data(t67, t67_value);
       if (dirty & /*$mapStore*/
       1 && button7_disabled_value !== (button7_disabled_value = !/*$mapStore*/
-      ctx2[0].initialized)) {
+      (ctx2[0].initialized && /*$mapStore*/
+      ctx2[0].decompressed))) {
         button7.disabled = button7_disabled_value;
       }
       if (dirty & /*$mapStore*/
@@ -11237,9 +11494,20 @@ function create_fragment$2(ctx) {
           ctx2[0].peaksVisible
         );
       }
+      if (dirty & /*$layerStats*/
+      2 && t75_value !== (t75_value = formatCount(
+        /*$layerStats*/
+        ctx2[1].peaks.features
+      ) + "")) set_data(t75, t75_value);
+      if (dirty & /*$layerStats*/
+      2 && t77_value !== (t77_value = formatCount(
+        /*$layerStats*/
+        ctx2[1].peaks.vertices
+      ) + "")) set_data(t77, t77_value);
       if (dirty & /*$mapStore*/
       1 && button8_disabled_value !== (button8_disabled_value = !/*$mapStore*/
-      ctx2[0].initialized)) {
+      (ctx2[0].initialized && /*$mapStore*/
+      ctx2[0].decompressed))) {
         button8.disabled = button8_disabled_value;
       }
       if (dirty & /*$mapStore*/
@@ -11247,7 +11515,8 @@ function create_fragment$2(ctx) {
       ctx2[0].panZoomStep + "")) set_data(t85, t85_value);
       if (dirty & /*$mapStore*/
       1 && button9_disabled_value !== (button9_disabled_value = !/*$mapStore*/
-      ctx2[0].initialized)) {
+      (ctx2[0].initialized && /*$mapStore*/
+      ctx2[0].decompressed))) {
         button9.disabled = button9_disabled_value;
       }
     },
@@ -11273,7 +11542,9 @@ function formatCount(num) {
 }
 function instance$2($$self, $$props, $$invalidate) {
   let $mapStore;
+  let $layerStats;
   component_subscribe($$self, mapStore, ($$value) => $$invalidate(0, $mapStore = $$value));
+  component_subscribe($$self, layerStats, ($$value) => $$invalidate(1, $layerStats = $$value));
   const click_handler = () => benchmarkDriver.decompressAndParse();
   const click_handler_1 = () => benchmarkDriver.initializeMap();
   const click_handler_2 = () => benchmarkDriver.teardown();
@@ -11286,6 +11557,7 @@ function instance$2($$self, $$props, $$invalidate) {
   const click_handler_9 = () => benchmarkDriver.nextPanZoomIncrement();
   return [
     $mapStore,
+    $layerStats,
     click_handler,
     click_handler_1,
     click_handler_2,

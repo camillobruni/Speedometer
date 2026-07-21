@@ -50,8 +50,35 @@ class BenchmarkDriver {
             console.error("Map container not registered with BenchmarkDriver.");
             return;
         }
-        if (this.map)
-            this.teardown();
+        if (this.map) {
+            if (this.routeGroup && this.map.hasLayer(this.routeGroup))
+                this.map.removeLayer(this.routeGroup);
+
+            if (this.riverGroup && this.map.hasLayer(this.riverGroup))
+                this.map.removeLayer(this.riverGroup);
+
+            if (this.peakGroup && this.map.hasLayer(this.peakGroup))
+                this.map.removeLayer(this.peakGroup);
+
+            if (this.parkGroup && this.map.hasLayer(this.parkGroup))
+                this.map.removeLayer(this.parkGroup);
+
+            if (this.buildingGroup && this.map.hasLayer(this.buildingGroup))
+                this.map.removeLayer(this.buildingGroup);
+
+            if (this.transitGroup && this.map.hasLayer(this.transitGroup))
+                this.map.removeLayer(this.transitGroup);
+
+            this.map.remove();
+            this.map = null;
+            this.topographicLayer = null;
+            this.routeGroup = null;
+            this.riverGroup = null;
+            this.peakGroup = null;
+            this.parkGroup = null;
+            this.buildingGroup = null;
+            this.transitGroup = null;
+        }
 
         this.map = L.map(this.mapContainer, {
             center: [37.7749, -122.4194],

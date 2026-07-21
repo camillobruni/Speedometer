@@ -1,5 +1,6 @@
 import L from "leaflet";
 import { THEME_COLORS, ROAD_STYLES } from "../theme/colors.js";
+import { layerStats } from "../stores/mapStore.js";
 import routesGzUrl from "../data/routes.json.gz?url";
 import riversGzUrl from "../data/rivers.json.gz?url";
 import peaksGzUrl from "../data/peaks.json.gz?url";
@@ -37,13 +38,6 @@ export function computeLayerStats(data) {
         vertices
     };
 }
-
-export let routesStats = { features: 0, vertices: 0 };
-export let riversStats = { features: 0, vertices: 0 };
-export let peaksStats = { features: 0, vertices: 0 };
-export let parksStats = { features: 0, vertices: 0 };
-export let buildingsStats = { features: 0, vertices: 0 };
-export let transitStats = { features: 0, vertices: 0 };
 
 export async function loadRawBuffers() {
     if (rawBuffers.routes && rawBuffers.rivers && rawBuffers.peaks && rawBuffers.parks && rawBuffers.buildings && rawBuffers.transit)
@@ -92,12 +86,14 @@ export async function decompressAndParseDatasets() {
     buildingsData = buildings;
     transitData = transit;
 
-    routesStats = computeLayerStats(routesData);
-    riversStats = computeLayerStats(riversData);
-    peaksStats = computeLayerStats(peaksData);
-    parksStats = computeLayerStats(parksData);
-    buildingsStats = computeLayerStats(buildingsData);
-    transitStats = computeLayerStats(transitData);
+    layerStats.set({
+        routes: computeLayerStats(routesData),
+        rivers: computeLayerStats(riversData),
+        peaks: computeLayerStats(peaksData),
+        parks: computeLayerStats(parksData),
+        buildings: computeLayerStats(buildingsData),
+        transit: computeLayerStats(transitData)
+    });
 }
 
 export function resetParsedDatasets() {
@@ -108,12 +104,15 @@ export function resetParsedDatasets() {
     buildingsData = null;
     transitData = null;
 
-    routesStats = { features: 0, vertices: 0 };
-    riversStats = { features: 0, vertices: 0 };
-    peaksStats = { features: 0, vertices: 0 };
-    parksStats = { features: 0, vertices: 0 };
-    buildingsStats = { features: 0, vertices: 0 };
-    transitStats = { features: 0, vertices: 0 };
+
+    layerStats.set({
+        routes: { features: 0, vertices: 0 },
+        rivers: { features: 0, vertices: 0 },
+        peaks: { features: 0, vertices: 0 },
+        parks: { features: 0, vertices: 0 },
+        buildings: { features: 0, vertices: 0 },
+        transit: { features: 0, vertices: 0 }
+    });
 }
 
 export function getRoutesData() {

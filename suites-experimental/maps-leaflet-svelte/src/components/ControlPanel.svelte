@@ -1,14 +1,6 @@
 <script>
-    import { mapStore } from "../stores/mapStore.js";
+    import { mapStore, layerStats } from "../stores/mapStore.js";
     import { benchmarkDriver } from "../services/benchmarkDriver.js";
-    import {
-        routesStats,
-        riversStats,
-        peaksStats,
-        parksStats,
-        buildingsStats,
-        transitStats
-    } from "../services/dataLoader.js";
 
     function formatCount(num) {
         if (num >= 1000000) {
@@ -32,6 +24,7 @@
         <button
             id="btn-decompress-data"
             class="control-btn"
+            disabled={$mapStore.decompressed}
             on:click={() => benchmarkDriver.decompressAndParse()}
         >
             <div class="btn-top-row">
@@ -44,23 +37,25 @@
         <button
             id="btn-init-map"
             class="control-btn"
+            disabled={!$mapStore.decompressed}
             on:click={() => benchmarkDriver.initializeMap()}
         >
             <div class="btn-top-row">
                 <span>Initialize Map</span>
                 <span class="status-indicator" class:status-active={$mapStore.initialized}>
-                    {$mapStore.initialized ? "READY" : "OFF"}
+                    {!$mapStore.decompressed ? "WAIT" : $mapStore.initialized ? "READY" : "OFF"}
                 </span>
             </div>
         </button>
         <button
             id="btn-teardown"
             class="control-btn"
+            disabled={!($mapStore.initialized || $mapStore.decompressed)}
             on:click={() => benchmarkDriver.teardown()}
         >
             <div class="btn-top-row">
                 <span>Teardown</span>
-                <span class="status-indicator">RESET</span>
+                <span class="status-indicator">{!($mapStore.initialized || $mapStore.decompressed) ? "OFF" : "RESET"}</span>
             </div>
         </button>
     </div>
@@ -70,7 +65,7 @@
         <button
             id="btn-toggle-parks"
             class="control-btn"
-            disabled={!$mapStore.initialized}
+            disabled={!($mapStore.initialized && $mapStore.decompressed)}
             on:click={() => benchmarkDriver.toggleParks()}
         >
             <div class="btn-top-row">
@@ -89,14 +84,14 @@
                 </span>
             </div>
             <div class="btn-telemetry">
-                {formatCount(parksStats.features)} feats | {formatCount(parksStats.vertices)} verts
+                {formatCount($layerStats.parks.features)} feats | {formatCount($layerStats.parks.vertices)} verts
             </div>
         </button>
 
         <button
             id="btn-toggle-rivers"
             class="control-btn"
-            disabled={!$mapStore.initialized}
+            disabled={!($mapStore.initialized && $mapStore.decompressed)}
             on:click={() => benchmarkDriver.toggleRivers()}
         >
             <div class="btn-top-row">
@@ -115,14 +110,14 @@
                 </span>
             </div>
             <div class="btn-telemetry">
-                {formatCount(riversStats.features)} feats | {formatCount(riversStats.vertices)} verts
+                {formatCount($layerStats.rivers.features)} feats | {formatCount($layerStats.rivers.vertices)} verts
             </div>
         </button>
 
         <button
             id="btn-toggle-buildings"
             class="control-btn"
-            disabled={!$mapStore.initialized}
+            disabled={!($mapStore.initialized && $mapStore.decompressed)}
             on:click={() => benchmarkDriver.toggleBuildings()}
         >
             <div class="btn-top-row">
@@ -145,14 +140,14 @@
                 </span>
             </div>
             <div class="btn-telemetry">
-                {formatCount(buildingsStats.features)} feats | {formatCount(buildingsStats.vertices)} verts
+                {formatCount($layerStats.buildings.features)} feats | {formatCount($layerStats.buildings.vertices)} verts
             </div>
         </button>
 
         <button
             id="btn-toggle-routes"
             class="control-btn"
-            disabled={!$mapStore.initialized}
+            disabled={!($mapStore.initialized && $mapStore.decompressed)}
             on:click={() => benchmarkDriver.toggleRoutes()}
         >
             <div class="btn-top-row">
@@ -174,14 +169,14 @@
                 </span>
             </div>
             <div class="btn-telemetry">
-                {formatCount(routesStats.features)} feats | {formatCount(routesStats.vertices)} verts
+                {formatCount($layerStats.routes.features)} feats | {formatCount($layerStats.routes.vertices)} verts
             </div>
         </button>
 
         <button
             id="btn-toggle-transit"
             class="control-btn"
-            disabled={!$mapStore.initialized}
+            disabled={!($mapStore.initialized && $mapStore.decompressed)}
             on:click={() => benchmarkDriver.toggleTransit()}
         >
             <div class="btn-top-row">
@@ -203,14 +198,14 @@
                 </span>
             </div>
             <div class="btn-telemetry">
-                {formatCount(transitStats.features)} feats | {formatCount(transitStats.vertices)} verts
+                {formatCount($layerStats.transit.features)} feats | {formatCount($layerStats.transit.vertices)} verts
             </div>
         </button>
 
         <button
             id="btn-toggle-peaks"
             class="control-btn"
-            disabled={!$mapStore.initialized}
+            disabled={!($mapStore.initialized && $mapStore.decompressed)}
             on:click={() => benchmarkDriver.togglePeaks()}
         >
             <div class="btn-top-row">
@@ -229,7 +224,7 @@
                 </span>
             </div>
             <div class="btn-telemetry">
-                {formatCount(peaksStats.features)} feats | {formatCount(peaksStats.vertices)} verts
+                {formatCount($layerStats.peaks.features)} feats | {formatCount($layerStats.peaks.vertices)} verts
             </div>
         </button>
     </div>
@@ -239,7 +234,7 @@
         <button
             id="btn-pan-zoom"
             class="control-btn"
-            disabled={!$mapStore.initialized}
+            disabled={!($mapStore.initialized && $mapStore.decompressed)}
             on:click={() => benchmarkDriver.nextPanZoomIncrement()}
         >
             <div class="btn-top-row">

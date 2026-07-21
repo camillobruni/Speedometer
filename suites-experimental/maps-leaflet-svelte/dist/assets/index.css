@@ -673,7 +673,9 @@ svg.leaflet-image-layer.leaflet-interactive path {
     --color-background: #090d16;
     --color-surface: #1e293b;
     --color-surface-hover: #2d3e56;
+    --color-surface-disabled: #111827;
     --color-border: #334155;
+    --color-border-disabled: #1e293b;
     --color-text: #f8fafc;
     --color-text-muted: #94a3b8;
     --color-accent: #3b82f6;
@@ -806,9 +808,26 @@ body, html {
     box-sizing: border-box;
 }
 
-.control-btn:hover {
+.control-btn:not(:disabled):hover {
     background-color: var(--color-surface-hover);
     border-color: var(--color-accent);
+}
+
+.control-btn:disabled {
+    background-color: var(--color-surface-disabled);
+    border-color: var(--color-border-disabled);
+    cursor: not-allowed !important;
+    opacity: 1 !important;
+    transition: none !important;
+    animation: none !important;
+}
+
+.control-btn:disabled .status-indicator {
+    background-color: var(--color-border-disabled);
+    color: var(--color-text-muted);
+    opacity: 1 !important;
+    transition: none !important;
+    animation: none !important;
 }
 
 .control-btn:last-child {
