@@ -391,7 +391,8 @@ const mapStore = writable({
   parksVisible: false,
   buildingsVisible: false,
   transitVisible: false,
-  panZoomStep: 0
+  panZoomStep: 0,
+  activeStep: 0
 });
 var commonjsGlobal = typeof globalThis !== "undefined" ? globalThis : typeof window !== "undefined" ? window : typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : {};
 function getDefaultExportFromCjs(x) {
@@ -9983,9 +9984,8 @@ const TopographicTileLayer = L$1.GridLayer.extend({
   },
   _getPooledCanvas: function(size) {
     let canvas = canvasPool.pop();
-    if (!canvas) {
+    if (!canvas)
       canvas = document.createElement("canvas");
-    }
     canvas.width = size.x;
     canvas.height = size.y;
     return canvas;
@@ -10042,7 +10042,8 @@ const buildingsGzUrl = "" + new URL("buildings.json.gz", import.meta.url).href;
 const transitGzUrl = "" + new URL("transit.json.gz", import.meta.url).href;
 async function fetchAndDecompressJson(url) {
   const response = await fetch(url);
-  if (!response.ok) throw new Error(`Failed to load dataset: ${url}`);
+  if (!response.ok)
+    throw new Error(`Failed to load dataset: ${url}`);
   const buffer = await response.arrayBuffer();
   const bytes = new Uint8Array(buffer);
   let text2;
@@ -10061,18 +10062,18 @@ let parksData = [];
 let buildingsData = [];
 let transitData = [];
 function countVertices(coords) {
-  if (!Array.isArray(coords)) return 0;
-  if (coords.length >= 2 && typeof coords[0] === "number" && typeof coords[1] === "number") {
+  if (!Array.isArray(coords))
+    return 0;
+  if (coords.length >= 2 && typeof coords[0] === "number" && typeof coords[1] === "number")
     return 1;
-  }
   return coords.reduce((sum, item) => sum + countVertices(item), 0);
 }
 function computeLayerStats(data) {
-  if (!Array.isArray(data)) return { features: 0, vertices: 0 };
+  if (!Array.isArray(data))
+    return { features: 0, vertices: 0 };
   let vertices = 0;
-  for (const item of data) {
+  for (const item of data)
     vertices += countVertices(item.coordinates);
-  }
   return {
     features: data.length,
     vertices
@@ -10137,11 +10138,10 @@ function createRiverLayerGroup() {
     interactive: false
   });
   const layers = riversData.map((feature) => {
-    if (feature.type === "polygon") {
+    if (feature.type === "polygon")
       return L$1.polygon(feature.coordinates, polygonOptions);
-    } else {
+    else
       return L$1.polyline(feature.coordinates, polylineOptions);
-    }
   });
   return L$1.layerGroup(layers);
 }
@@ -10244,9 +10244,8 @@ class BenchmarkDriver {
       console.error("Map container not registered with BenchmarkDriver.");
       return;
     }
-    if (this.map) {
+    if (this.map)
       this.teardown();
-    }
     this.map = L$1.map(this.mapContainer, {
       center: [37.7749, -122.4194],
       zoom: 13,
@@ -10266,46 +10265,122 @@ class BenchmarkDriver {
       noWrap: true
     }).addTo(this.map);
     this.currentPanZoomIndex = 0;
-    mapStore.update((s) => ({ ...s, initialized: true, panZoomStep: 0 }));
+    mapStore.update((s) => ({ ...s, initialized: true, panZoomStep: 0, activeStep: 0 }));
+  }
+  initTerrain() {
+    this.initializeMap();
+    if (!this.map)
+      return;
+    if (!this.parkGroup)
+      this.parkGroup = createParkLayerGroup();
+    if (!this.map.hasLayer(this.parkGroup))
+      this.parkGroup.addTo(this.map);
+    if (!this.riverGroup)
+      this.riverGroup = createRiverLayerGroup();
+    if (!this.map.hasLayer(this.riverGroup))
+      this.riverGroup.addTo(this.map);
+    mapStore.update((s) => ({
+      ...s,
+      initialized: true,
+      parksVisible: true,
+      riversVisible: true,
+      panZoomStep: 1,
+      activeStep: 1
+    }));
+  }
+  addRoadsTransit() {
+    if (!this.map)
+      return;
+    if (!this.routeGroup)
+      this.routeGroup = createRouteLayerGroup();
+    if (!this.map.hasLayer(this.routeGroup))
+      this.routeGroup.addTo(this.map);
+    if (!this.transitGroup)
+      this.transitGroup = createTransitLayerGroup();
+    if (!this.map.hasLayer(this.transitGroup))
+      this.transitGroup.addTo(this.map);
+    mapStore.update((s) => ({
+      ...s,
+      routesVisible: true,
+      transitVisible: true,
+      panZoomStep: 2,
+      activeStep: 2
+    }));
+  }
+  addBuildingsLandmarks() {
+    if (!this.map)
+      return;
+    if (!this.buildingGroup)
+      this.buildingGroup = createBuildingLayerGroup();
+    if (!this.map.hasLayer(this.buildingGroup))
+      this.buildingGroup.addTo(this.map);
+    if (!this.peakGroup)
+      this.peakGroup = createPeakLayerGroup();
+    if (!this.map.hasLayer(this.peakGroup))
+      this.peakGroup.addTo(this.map);
+    mapStore.update((s) => ({
+      ...s,
+      buildingsVisible: true,
+      peaksVisible: true,
+      panZoomStep: 3,
+      activeStep: 3
+    }));
+  }
+  navGoldenGatePark() {
+    if (!this.map)
+      return;
+    this.map.setView([37.7694, -122.4862], 14, { animate: false });
+    this.currentPanZoomIndex = 1;
+    mapStore.update((s) => ({ ...s, panZoomStep: 4, activeStep: 4 }));
+  }
+  navDowntown() {
+    if (!this.map)
+      return;
+    this.map.setView([37.7915, -122.399], 17, { animate: false });
+    this.currentPanZoomIndex = 2;
+    mapStore.update((s) => ({ ...s, panZoomStep: 5, activeStep: 5 }));
+  }
+  navMuni() {
+    if (!this.map)
+      return;
+    this.map.setView([37.755, -122.44], 12, { animate: false });
+    this.currentPanZoomIndex = 3;
+    mapStore.update((s) => ({ ...s, panZoomStep: 6, activeStep: 6 }));
+  }
+  navTwinPeaks() {
+    if (!this.map)
+      return;
+    this.map.setView([37.7525, -122.4474], 15, { animate: false });
+    this.currentPanZoomIndex = 4;
+    mapStore.update((s) => ({ ...s, panZoomStep: 7, activeStep: 7 }));
   }
   addOverlays() {
-    if (!this.map) return;
-    if (!this.parkGroup) {
+    if (!this.map)
+      return;
+    if (!this.parkGroup)
       this.parkGroup = createParkLayerGroup();
-    }
-    if (!this.map.hasLayer(this.parkGroup)) {
+    if (!this.map.hasLayer(this.parkGroup))
       this.parkGroup.addTo(this.map);
-    }
-    if (!this.riverGroup) {
+    if (!this.riverGroup)
       this.riverGroup = createRiverLayerGroup();
-    }
-    if (!this.map.hasLayer(this.riverGroup)) {
+    if (!this.map.hasLayer(this.riverGroup))
       this.riverGroup.addTo(this.map);
-    }
-    if (!this.buildingGroup) {
+    if (!this.buildingGroup)
       this.buildingGroup = createBuildingLayerGroup();
-    }
-    if (!this.map.hasLayer(this.buildingGroup)) {
+    if (!this.map.hasLayer(this.buildingGroup))
       this.buildingGroup.addTo(this.map);
-    }
-    if (!this.routeGroup) {
+    if (!this.routeGroup)
       this.routeGroup = createRouteLayerGroup();
-    }
-    if (!this.map.hasLayer(this.routeGroup)) {
+    if (!this.map.hasLayer(this.routeGroup))
       this.routeGroup.addTo(this.map);
-    }
-    if (!this.transitGroup) {
+    if (!this.transitGroup)
       this.transitGroup = createTransitLayerGroup();
-    }
-    if (!this.map.hasLayer(this.transitGroup)) {
+    if (!this.map.hasLayer(this.transitGroup))
       this.transitGroup.addTo(this.map);
-    }
-    if (!this.peakGroup) {
+    if (!this.peakGroup)
       this.peakGroup = createPeakLayerGroup();
-    }
-    if (!this.map.hasLayer(this.peakGroup)) {
+    if (!this.map.hasLayer(this.peakGroup))
       this.peakGroup.addTo(this.map);
-    }
     mapStore.update((s) => ({
       ...s,
       parksVisible: true,
@@ -10317,8 +10392,10 @@ class BenchmarkDriver {
     }));
   }
   toggleParks() {
-    if (!this.map) return;
-    if (!this.parkGroup) this.parkGroup = createParkLayerGroup();
+    if (!this.map)
+      return;
+    if (!this.parkGroup)
+      this.parkGroup = createParkLayerGroup();
     if (this.map.hasLayer(this.parkGroup)) {
       this.map.removeLayer(this.parkGroup);
       mapStore.update((s) => ({ ...s, parksVisible: false }));
@@ -10328,8 +10405,10 @@ class BenchmarkDriver {
     }
   }
   toggleRivers() {
-    if (!this.map) return;
-    if (!this.riverGroup) this.riverGroup = createRiverLayerGroup();
+    if (!this.map)
+      return;
+    if (!this.riverGroup)
+      this.riverGroup = createRiverLayerGroup();
     if (this.map.hasLayer(this.riverGroup)) {
       this.map.removeLayer(this.riverGroup);
       mapStore.update((s) => ({ ...s, riversVisible: false }));
@@ -10339,8 +10418,10 @@ class BenchmarkDriver {
     }
   }
   toggleBuildings() {
-    if (!this.map) return;
-    if (!this.buildingGroup) this.buildingGroup = createBuildingLayerGroup();
+    if (!this.map)
+      return;
+    if (!this.buildingGroup)
+      this.buildingGroup = createBuildingLayerGroup();
     if (this.map.hasLayer(this.buildingGroup)) {
       this.map.removeLayer(this.buildingGroup);
       mapStore.update((s) => ({ ...s, buildingsVisible: false }));
@@ -10350,8 +10431,10 @@ class BenchmarkDriver {
     }
   }
   toggleRoutes() {
-    if (!this.map) return;
-    if (!this.routeGroup) this.routeGroup = createRouteLayerGroup();
+    if (!this.map)
+      return;
+    if (!this.routeGroup)
+      this.routeGroup = createRouteLayerGroup();
     if (this.map.hasLayer(this.routeGroup)) {
       this.map.removeLayer(this.routeGroup);
       mapStore.update((s) => ({ ...s, routesVisible: false }));
@@ -10361,8 +10444,10 @@ class BenchmarkDriver {
     }
   }
   toggleTransit() {
-    if (!this.map) return;
-    if (!this.transitGroup) this.transitGroup = createTransitLayerGroup();
+    if (!this.map)
+      return;
+    if (!this.transitGroup)
+      this.transitGroup = createTransitLayerGroup();
     if (this.map.hasLayer(this.transitGroup)) {
       this.map.removeLayer(this.transitGroup);
       mapStore.update((s) => ({ ...s, transitVisible: false }));
@@ -10372,8 +10457,10 @@ class BenchmarkDriver {
     }
   }
   togglePeaks() {
-    if (!this.map) return;
-    if (!this.peakGroup) this.peakGroup = createPeakLayerGroup();
+    if (!this.map)
+      return;
+    if (!this.peakGroup)
+      this.peakGroup = createPeakLayerGroup();
     if (this.map.hasLayer(this.peakGroup)) {
       this.map.removeLayer(this.peakGroup);
       mapStore.update((s) => ({ ...s, peaksVisible: false }));
@@ -10383,48 +10470,39 @@ class BenchmarkDriver {
     }
   }
   nextPanZoomIncrement() {
-    if (!this.map) return;
-    const step = this.currentPanZoomIndex % 5;
+    if (!this.map)
+      return;
+    const step = this.currentPanZoomIndex % 4;
     switch (step) {
       case 0:
-        this.map.setView([37.7941, -122.3952], 14, { animate: false });
+        this.navGoldenGatePark();
         break;
       case 1:
-        this.map.panBy([-300, -200], { animate: false });
+        this.navDowntown();
         break;
       case 2:
-        this.map.setZoom(15, { animate: false });
+        this.navMuni();
         break;
       case 3:
-        this.map.panBy([150, 350], { animate: false });
-        break;
-      case 4:
-        this.map.setView([37.7749, -122.4194], 13, { animate: false });
+        this.navTwinPeaks();
         break;
     }
-    this.currentPanZoomIndex++;
-    mapStore.update((s) => ({ ...s, panZoomStep: this.currentPanZoomIndex }));
+    this.currentPanZoomIndex = (step + 1) % 4;
   }
   teardown() {
     if (this.map) {
-      if (this.routeGroup && this.map.hasLayer(this.routeGroup)) {
+      if (this.routeGroup && this.map.hasLayer(this.routeGroup))
         this.map.removeLayer(this.routeGroup);
-      }
-      if (this.riverGroup && this.map.hasLayer(this.riverGroup)) {
+      if (this.riverGroup && this.map.hasLayer(this.riverGroup))
         this.map.removeLayer(this.riverGroup);
-      }
-      if (this.peakGroup && this.map.hasLayer(this.peakGroup)) {
+      if (this.peakGroup && this.map.hasLayer(this.peakGroup))
         this.map.removeLayer(this.peakGroup);
-      }
-      if (this.parkGroup && this.map.hasLayer(this.parkGroup)) {
+      if (this.parkGroup && this.map.hasLayer(this.parkGroup))
         this.map.removeLayer(this.parkGroup);
-      }
-      if (this.buildingGroup && this.map.hasLayer(this.buildingGroup)) {
+      if (this.buildingGroup && this.map.hasLayer(this.buildingGroup))
         this.map.removeLayer(this.buildingGroup);
-      }
-      if (this.transitGroup && this.map.hasLayer(this.transitGroup)) {
+      if (this.transitGroup && this.map.hasLayer(this.transitGroup))
         this.map.removeLayer(this.transitGroup);
-      }
       this.map.remove();
       this.map = null;
     }
@@ -10444,20 +10522,27 @@ class BenchmarkDriver {
       parksVisible: false,
       buildingsVisible: false,
       transitVisible: false,
-      panZoomStep: 0
+      panZoomStep: 0,
+      activeStep: 0
     });
   }
   flushAsync() {
-    if (typeof window.__speedometer_flush_raf === "function") {
+    if (typeof window.__speedometer_flush_raf === "function")
       window.__speedometer_flush_raf();
-    }
   }
 }
 const benchmarkDriver = new BenchmarkDriver();
 if (typeof window !== "undefined") {
   window.workload = benchmarkDriver;
   window.benchmarkInitializeMap = () => benchmarkDriver.initializeMap();
+  window.benchmarkInitTerrain = () => benchmarkDriver.initTerrain();
   window.benchmarkAddOverlays = () => benchmarkDriver.addOverlays();
+  window.benchmarkAddRoadsTransit = () => benchmarkDriver.addRoadsTransit();
+  window.benchmarkAddBuildingsLandmarks = () => benchmarkDriver.addBuildingsLandmarks();
+  window.benchmarkNavGoldenGatePark = () => benchmarkDriver.navGoldenGatePark();
+  window.benchmarkNavDowntown = () => benchmarkDriver.navDowntown();
+  window.benchmarkNavMuni = () => benchmarkDriver.navMuni();
+  window.benchmarkNavTwinPeaks = () => benchmarkDriver.navTwinPeaks();
   window.benchmarkNextPanZoomIncrement = () => benchmarkDriver.nextPanZoomIncrement();
   window.benchmarkTeardown = () => benchmarkDriver.teardown();
   window.benchmarkFlushAsync = () => benchmarkDriver.flushAsync();
@@ -10466,10 +10551,11 @@ function create_fragment$2(ctx) {
   let aside;
   let div0;
   let t3;
-  let div1;
+  let div3;
   let h20;
   let t5;
   let button0;
+  let div1;
   let span0;
   let t7;
   let span1;
@@ -10481,70 +10567,68 @@ function create_fragment$2(ctx) {
   let t9;
   let button1;
   let t13;
-  let div2;
+  let div16;
   let h21;
   let t15;
   let button2;
+  let div4;
   let span6;
-  let span4;
-  let t16;
-  let span5;
-  let t22;
+  let t18;
   let span7;
-  let t23_value = (
+  let t19_value = (
     /*$mapStore*/
     ctx[0].parksVisible ? "ON" : "OFF"
   );
-  let t23;
+  let t19;
+  let t20;
+  let div5;
   let button2_disabled_value;
-  let t24;
-  let button3;
-  let span10;
-  let span8;
   let t25;
-  let span9;
-  let t31;
+  let button3;
+  let div6;
+  let span10;
+  let t28;
   let span11;
-  let t32_value = (
+  let t29_value = (
     /*$mapStore*/
     ctx[0].riversVisible ? "ON" : "OFF"
   );
-  let t32;
+  let t29;
+  let t30;
+  let div7;
   let button3_disabled_value;
-  let t33;
+  let t35;
   let button4;
+  let div8;
   let span14;
-  let span12;
-  let t34;
-  let span13;
-  let t40;
+  let t38;
   let span15;
-  let t41_value = (
+  let t39_value = (
     /*$mapStore*/
     ctx[0].buildingsVisible ? "ON" : "OFF"
   );
-  let t41;
+  let t39;
+  let t40;
+  let div9;
   let button4_disabled_value;
-  let t42;
+  let t45;
   let button5;
+  let div10;
   let span18;
-  let span16;
-  let t43;
-  let span17;
-  let t49;
+  let t48;
   let span19;
-  let t50_value = (
+  let t49_value = (
     /*$mapStore*/
     ctx[0].routesVisible ? "ON" : "OFF"
   );
+  let t49;
   let t50;
+  let div11;
   let button5_disabled_value;
-  let t51;
+  let t55;
   let button6;
+  let div12;
   let span22;
-  let span20;
-  let t52;
-  let span21;
   let t58;
   let span23;
   let t59_value = (
@@ -10552,35 +10636,38 @@ function create_fragment$2(ctx) {
     ctx[0].transitVisible ? "ON" : "OFF"
   );
   let t59;
-  let button6_disabled_value;
   let t60;
+  let div13;
+  let button6_disabled_value;
+  let t65;
   let button7;
+  let div14;
   let span26;
-  let span24;
-  let t61;
-  let span25;
-  let t67;
+  let t68;
   let span27;
-  let t68_value = (
+  let t69_value = (
     /*$mapStore*/
     ctx[0].peaksVisible ? "ON" : "OFF"
   );
-  let t68;
-  let button7_disabled_value;
   let t69;
-  let div3;
+  let t70;
+  let div15;
+  let button7_disabled_value;
+  let t75;
+  let div18;
   let h22;
-  let t71;
+  let t77;
   let button8;
+  let div17;
   let span28;
-  let t73;
+  let t79;
   let span29;
-  let t74;
-  let t75_value = (
+  let t80;
+  let t81_value = (
     /*$mapStore*/
     ctx[0].panZoomStep + ""
   );
-  let t75;
+  let t81;
   let button8_disabled_value;
   let mounted;
   let dispose;
@@ -10588,13 +10675,14 @@ function create_fragment$2(ctx) {
     c() {
       aside = element("aside");
       div0 = element("div");
-      div0.innerHTML = `<h1 class="panel-title">SF TIGER/Line GIS Benchmark</h1> <p class="panel-subtitle">Svelte + Leaflet Canvas Workload (U.S. Census CC0)</p>`;
+      div0.innerHTML = `<h1 class="panel-title">Layers</h1> <p class="panel-subtitle">SF TIGER/Line GIS</p>`;
       t3 = space();
-      div1 = element("div");
+      div3 = element("div");
       h20 = element("h2");
-      h20.textContent = "Lifecycle & Initialization";
+      h20.textContent = "Lifecycle & Init";
       t5 = space();
       button0 = element("button");
+      div1 = element("div");
       span0 = element("span");
       span0.textContent = "Initialize Map";
       t7 = space();
@@ -10602,83 +10690,90 @@ function create_fragment$2(ctx) {
       t8 = text(t8_value);
       t9 = space();
       button1 = element("button");
-      button1.innerHTML = `<span>Teardown &amp; Clean</span> <span class="status-indicator">RESET</span>`;
+      button1.innerHTML = `<div class="btn-top-row"><span>Teardown</span> <span class="status-indicator">RESET</span></div>`;
       t13 = space();
-      div2 = element("div");
+      div16 = element("div");
       h21 = element("h2");
-      h21.textContent = "TIGER/Line Vector Overlays (CC0)";
+      h21.textContent = "Vector Overlays (CC0)";
       t15 = space();
       button2 = element("button");
+      div4 = element("div");
       span6 = element("span");
-      span4 = element("span");
-      t16 = space();
-      span5 = element("span");
-      span5.textContent = `Parks & Green Spaces (${parksStats.features} feats | ${parksStats.vertices} verts)`;
-      t22 = space();
+      span6.innerHTML = `<span class="layer-icon" title="Parks &amp; Green Spaces"><svg viewBox="0 0 18 18" width="16" height="16" stroke="currentColor" fill="none" stroke-width="1.3"><rect x="1.5" y="1.5" width="15" height="15" stroke-dasharray="2 2" rx="1"></rect><circle cx="9" cy="8" r="3.5"></circle><line x1="9" y1="11.5" x2="9" y2="15" stroke-width="1.5"></line></svg></span> <span>Parks</span>`;
+      t18 = space();
       span7 = element("span");
-      t23 = text(t23_value);
-      t24 = space();
-      button3 = element("button");
-      span10 = element("span");
-      span8 = element("span");
+      t19 = text(t19_value);
+      t20 = space();
+      div5 = element("div");
+      div5.textContent = `${formatCount(parksStats.features)} feats | ${formatCount(parksStats.vertices)} verts`;
       t25 = space();
-      span9 = element("span");
-      span9.textContent = `Coastal Hydrography (${riversStats.features} feats | ${riversStats.vertices} verts)`;
-      t31 = space();
+      button3 = element("button");
+      div6 = element("div");
+      span10 = element("span");
+      span10.innerHTML = `<span class="layer-icon" title="Coastal Hydrography"><svg viewBox="0 0 18 18" width="16" height="16" stroke="currentColor" fill="none" stroke-width="1.4" stroke-linecap="round"><path d="M2 5 C 6 2, 12 8, 16 5"></path><path d="M2 9 C 6 6, 12 12, 16 9"></path><path d="M2 13 C 6 10, 12 16, 16 13"></path></svg></span> <span>Rivers</span>`;
+      t28 = space();
       span11 = element("span");
-      t32 = text(t32_value);
-      t33 = space();
+      t29 = text(t29_value);
+      t30 = space();
+      div7 = element("div");
+      div7.textContent = `${formatCount(riversStats.features)} feats | ${formatCount(riversStats.vertices)} verts`;
+      t35 = space();
       button4 = element("button");
+      div8 = element("div");
       span14 = element("span");
-      span12 = element("span");
-      t34 = space();
-      span13 = element("span");
-      span13.textContent = `Downtown Buildings (${buildingsStats.features} feats | ${buildingsStats.vertices} verts)`;
-      t40 = space();
+      span14.innerHTML = `<span class="layer-icon" title="Downtown Buildings"><svg viewBox="0 0 18 18" width="16" height="16" stroke="currentColor" fill="none" stroke-width="1.3"><path d="M3 16 V 7 H 8 V 16"></path><path d="M8 16 V 3 H 15 V 16"></path><line x1="10" y1="6" x2="13" y2="6" stroke-width="1"></line><line x1="10" y1="9" x2="13" y2="9" stroke-width="1"></line><line x1="10" y1="12" x2="13" y2="12" stroke-width="1"></line><line x1="5" y1="10" x2="6" y2="10" stroke-width="1"></line><line x1="5" y1="13" x2="6" y2="13" stroke-width="1"></line></svg></span> <span>Buildings</span>`;
+      t38 = space();
       span15 = element("span");
-      t41 = text(t41_value);
-      t42 = space();
+      t39 = text(t39_value);
+      t40 = space();
+      div9 = element("div");
+      div9.textContent = `${formatCount(buildingsStats.features)} feats | ${formatCount(buildingsStats.vertices)} verts`;
+      t45 = space();
       button5 = element("button");
+      div10 = element("div");
       span18 = element("span");
-      span16 = element("span");
-      t43 = space();
-      span17 = element("span");
-      span17.textContent = `SF Road Networks (${routesStats.features} feats | ${routesStats.vertices} verts)`;
-      t49 = space();
+      span18.innerHTML = `<span class="layer-icon" title="SF Road Networks"><svg viewBox="0 0 18 18" width="16" height="16" stroke="currentColor" fill="none" stroke-width="1.3"><line x1="1" y1="6" x2="17" y2="6"></line><line x1="1" y1="12" x2="17" y2="12"></line><line x1="6" y1="1" x2="6" y2="17"></line><line x1="12" y1="1" x2="12" y2="17"></line><line x1="1" y1="9" x2="17" y2="9" stroke-width="1" stroke-dasharray="2 2"></line><line x1="9" y1="1" x2="9" y2="17" stroke-width="1" stroke-dasharray="2 2"></line></svg></span> <span>Routes</span>`;
+      t48 = space();
       span19 = element("span");
-      t50 = text(t50_value);
-      t51 = space();
+      t49 = text(t49_value);
+      t50 = space();
+      div11 = element("div");
+      div11.textContent = `${formatCount(routesStats.features)} feats | ${formatCount(routesStats.vertices)} verts`;
+      t55 = space();
       button6 = element("button");
+      div12 = element("div");
       span22 = element("span");
-      span20 = element("span");
-      t52 = space();
-      span21 = element("span");
-      span21.textContent = `Muni Transit (${transitStats.features} feats | ${transitStats.vertices} verts)`;
+      span22.innerHTML = `<span class="layer-icon" title="Muni Transit"><svg viewBox="0 0 18 18" width="16" height="16" stroke="currentColor" fill="none" stroke-width="1.4"><line x1="6" y1="2" x2="6" y2="16"></line><line x1="12" y1="2" x2="12" y2="16"></line><line x1="4" y1="4" x2="14" y2="4" stroke-width="1.2"></line><line x1="4" y1="8" x2="14" y2="8" stroke-width="1.2"></line><line x1="4" y1="12" x2="14" y2="12" stroke-width="1.2"></line><line x1="4" y1="16" x2="14" y2="16" stroke-width="1.2"></line></svg></span> <span>Transit</span>`;
       t58 = space();
       span23 = element("span");
       t59 = text(t59_value);
       t60 = space();
+      div13 = element("div");
+      div13.textContent = `${formatCount(transitStats.features)} feats | ${formatCount(transitStats.vertices)} verts`;
+      t65 = space();
       button7 = element("button");
+      div14 = element("div");
       span26 = element("span");
-      span24 = element("span");
-      t61 = space();
-      span25 = element("span");
-      span25.textContent = `SF Landmarks & Peaks (${peaksStats.features} feats | ${peaksStats.vertices} verts)`;
-      t67 = space();
+      span26.innerHTML = `<span class="layer-icon" title="SF Landmarks &amp; Peaks"><svg viewBox="0 0 18 18" width="16" height="16" stroke="currentColor" fill="none" stroke-width="1.3"><path d="M2 15 L 9 3 L 16 15 Z" stroke-linejoin="round"></path><circle cx="9" cy="8" r="1" fill="currentColor" stroke="none"></circle><line x1="5.5" y1="10.5" x2="12.5" y2="10.5" stroke-width="1" stroke-dasharray="2 2"></line></svg></span> <span>Peaks</span>`;
+      t68 = space();
       span27 = element("span");
-      t68 = text(t68_value);
-      t69 = space();
-      div3 = element("div");
+      t69 = text(t69_value);
+      t70 = space();
+      div15 = element("div");
+      div15.textContent = `${formatCount(peaksStats.features)} feats | ${formatCount(peaksStats.vertices)} verts`;
+      t75 = space();
+      div18 = element("div");
       h22 = element("h2");
-      h22.textContent = "Interactive Navigation";
-      t71 = space();
+      h22.textContent = "Navigation";
+      t77 = space();
       button8 = element("button");
+      div17 = element("div");
       span28 = element("span");
       span28.textContent = "Pan / Zoom Step";
-      t73 = space();
+      t79 = space();
       span29 = element("span");
-      t74 = text("Step ");
-      t75 = text(t75_value);
+      t80 = text("Step ");
+      t81 = text(t81_value);
       attr(div0, "class", "panel-header");
       attr(h20, "class", "section-title");
       attr(span1, "class", "status-indicator");
@@ -10688,14 +10783,14 @@ function create_fragment$2(ctx) {
         /*$mapStore*/
         ctx[0].initialized
       );
+      attr(div1, "class", "btn-top-row");
       attr(button0, "id", "btn-init-map");
       attr(button0, "class", "control-btn");
       attr(button1, "id", "btn-teardown");
       attr(button1, "class", "control-btn");
-      attr(div1, "class", "section-card");
+      attr(div3, "class", "section-card");
       attr(h21, "class", "section-title");
-      attr(span4, "class", "badge badge-park");
-      attr(span6, "class", "btn-label-row");
+      attr(span6, "class", "btn-label-group");
       attr(span7, "class", "status-indicator");
       toggle_class(
         span7,
@@ -10703,12 +10798,13 @@ function create_fragment$2(ctx) {
         /*$mapStore*/
         ctx[0].parksVisible
       );
+      attr(div4, "class", "btn-top-row");
+      attr(div5, "class", "btn-telemetry");
       attr(button2, "id", "btn-toggle-parks");
       attr(button2, "class", "control-btn");
       button2.disabled = button2_disabled_value = !/*$mapStore*/
       ctx[0].initialized;
-      attr(span8, "class", "badge badge-river");
-      attr(span10, "class", "btn-label-row");
+      attr(span10, "class", "btn-label-group");
       attr(span11, "class", "status-indicator");
       toggle_class(
         span11,
@@ -10716,12 +10812,13 @@ function create_fragment$2(ctx) {
         /*$mapStore*/
         ctx[0].riversVisible
       );
+      attr(div6, "class", "btn-top-row");
+      attr(div7, "class", "btn-telemetry");
       attr(button3, "id", "btn-toggle-rivers");
       attr(button3, "class", "control-btn");
       button3.disabled = button3_disabled_value = !/*$mapStore*/
       ctx[0].initialized;
-      attr(span12, "class", "badge badge-building");
-      attr(span14, "class", "btn-label-row");
+      attr(span14, "class", "btn-label-group");
       attr(span15, "class", "status-indicator");
       toggle_class(
         span15,
@@ -10729,12 +10826,13 @@ function create_fragment$2(ctx) {
         /*$mapStore*/
         ctx[0].buildingsVisible
       );
+      attr(div8, "class", "btn-top-row");
+      attr(div9, "class", "btn-telemetry");
       attr(button4, "id", "btn-toggle-buildings");
       attr(button4, "class", "control-btn");
       button4.disabled = button4_disabled_value = !/*$mapStore*/
       ctx[0].initialized;
-      attr(span16, "class", "badge badge-route");
-      attr(span18, "class", "btn-label-row");
+      attr(span18, "class", "btn-label-group");
       attr(span19, "class", "status-indicator");
       toggle_class(
         span19,
@@ -10742,12 +10840,13 @@ function create_fragment$2(ctx) {
         /*$mapStore*/
         ctx[0].routesVisible
       );
+      attr(div10, "class", "btn-top-row");
+      attr(div11, "class", "btn-telemetry");
       attr(button5, "id", "btn-toggle-routes");
       attr(button5, "class", "control-btn");
       button5.disabled = button5_disabled_value = !/*$mapStore*/
       ctx[0].initialized;
-      attr(span20, "class", "badge badge-transit");
-      attr(span22, "class", "btn-label-row");
+      attr(span22, "class", "btn-label-group");
       attr(span23, "class", "status-indicator");
       toggle_class(
         span23,
@@ -10755,12 +10854,13 @@ function create_fragment$2(ctx) {
         /*$mapStore*/
         ctx[0].transitVisible
       );
+      attr(div12, "class", "btn-top-row");
+      attr(div13, "class", "btn-telemetry");
       attr(button6, "id", "btn-toggle-transit");
       attr(button6, "class", "control-btn");
       button6.disabled = button6_disabled_value = !/*$mapStore*/
       ctx[0].initialized;
-      attr(span24, "class", "badge badge-peak");
-      attr(span26, "class", "btn-label-row");
+      attr(span26, "class", "btn-label-group");
       attr(span27, "class", "status-indicator");
       toggle_class(
         span27,
@@ -10768,101 +10868,106 @@ function create_fragment$2(ctx) {
         /*$mapStore*/
         ctx[0].peaksVisible
       );
+      attr(div14, "class", "btn-top-row");
+      attr(div15, "class", "btn-telemetry");
       attr(button7, "id", "btn-toggle-peaks");
       attr(button7, "class", "control-btn");
       button7.disabled = button7_disabled_value = !/*$mapStore*/
       ctx[0].initialized;
-      attr(div2, "class", "section-card");
+      attr(div16, "class", "section-card");
       attr(h22, "class", "section-title");
       attr(span29, "class", "status-indicator");
+      attr(div17, "class", "btn-top-row");
       attr(button8, "id", "btn-pan-zoom");
       attr(button8, "class", "control-btn");
       button8.disabled = button8_disabled_value = !/*$mapStore*/
       ctx[0].initialized;
-      attr(div3, "class", "section-card");
+      attr(div18, "class", "section-card");
       attr(aside, "class", "sidebar");
     },
     m(target, anchor) {
       insert(target, aside, anchor);
       append(aside, div0);
       append(aside, t3);
-      append(aside, div1);
-      append(div1, h20);
-      append(div1, t5);
-      append(div1, button0);
-      append(button0, span0);
-      append(button0, t7);
-      append(button0, span1);
-      append(span1, t8);
-      append(div1, t9);
-      append(div1, button1);
-      append(aside, t13);
-      append(aside, div2);
-      append(div2, h21);
-      append(div2, t15);
-      append(div2, button2);
-      append(button2, span6);
-      append(span6, span4);
-      append(span6, t16);
-      append(span6, span5);
-      append(button2, t22);
-      append(button2, span7);
-      append(span7, t23);
-      append(div2, t24);
-      append(div2, button3);
-      append(button3, span10);
-      append(span10, span8);
-      append(span10, t25);
-      append(span10, span9);
-      append(button3, t31);
-      append(button3, span11);
-      append(span11, t32);
-      append(div2, t33);
-      append(div2, button4);
-      append(button4, span14);
-      append(span14, span12);
-      append(span14, t34);
-      append(span14, span13);
-      append(button4, t40);
-      append(button4, span15);
-      append(span15, t41);
-      append(div2, t42);
-      append(div2, button5);
-      append(button5, span18);
-      append(span18, span16);
-      append(span18, t43);
-      append(span18, span17);
-      append(button5, t49);
-      append(button5, span19);
-      append(span19, t50);
-      append(div2, t51);
-      append(div2, button6);
-      append(button6, span22);
-      append(span22, span20);
-      append(span22, t52);
-      append(span22, span21);
-      append(button6, t58);
-      append(button6, span23);
-      append(span23, t59);
-      append(div2, t60);
-      append(div2, button7);
-      append(button7, span26);
-      append(span26, span24);
-      append(span26, t61);
-      append(span26, span25);
-      append(button7, t67);
-      append(button7, span27);
-      append(span27, t68);
-      append(aside, t69);
       append(aside, div3);
-      append(div3, h22);
-      append(div3, t71);
-      append(div3, button8);
-      append(button8, span28);
-      append(button8, t73);
-      append(button8, span29);
-      append(span29, t74);
-      append(span29, t75);
+      append(div3, h20);
+      append(div3, t5);
+      append(div3, button0);
+      append(button0, div1);
+      append(div1, span0);
+      append(div1, t7);
+      append(div1, span1);
+      append(span1, t8);
+      append(div3, t9);
+      append(div3, button1);
+      append(aside, t13);
+      append(aside, div16);
+      append(div16, h21);
+      append(div16, t15);
+      append(div16, button2);
+      append(button2, div4);
+      append(div4, span6);
+      append(div4, t18);
+      append(div4, span7);
+      append(span7, t19);
+      append(button2, t20);
+      append(button2, div5);
+      append(div16, t25);
+      append(div16, button3);
+      append(button3, div6);
+      append(div6, span10);
+      append(div6, t28);
+      append(div6, span11);
+      append(span11, t29);
+      append(button3, t30);
+      append(button3, div7);
+      append(div16, t35);
+      append(div16, button4);
+      append(button4, div8);
+      append(div8, span14);
+      append(div8, t38);
+      append(div8, span15);
+      append(span15, t39);
+      append(button4, t40);
+      append(button4, div9);
+      append(div16, t45);
+      append(div16, button5);
+      append(button5, div10);
+      append(div10, span18);
+      append(div10, t48);
+      append(div10, span19);
+      append(span19, t49);
+      append(button5, t50);
+      append(button5, div11);
+      append(div16, t55);
+      append(div16, button6);
+      append(button6, div12);
+      append(div12, span22);
+      append(div12, t58);
+      append(div12, span23);
+      append(span23, t59);
+      append(button6, t60);
+      append(button6, div13);
+      append(div16, t65);
+      append(div16, button7);
+      append(button7, div14);
+      append(div14, span26);
+      append(div14, t68);
+      append(div14, span27);
+      append(span27, t69);
+      append(button7, t70);
+      append(button7, div15);
+      append(aside, t75);
+      append(aside, div18);
+      append(div18, h22);
+      append(div18, t77);
+      append(div18, button8);
+      append(button8, div17);
+      append(div17, span28);
+      append(div17, t79);
+      append(div17, span29);
+      append(span29, t80);
+      append(span29, t81);
       if (!mounted) {
         dispose = [
           listen(
@@ -10937,8 +11042,8 @@ function create_fragment$2(ctx) {
         );
       }
       if (dirty & /*$mapStore*/
-      1 && t23_value !== (t23_value = /*$mapStore*/
-      ctx2[0].parksVisible ? "ON" : "OFF")) set_data(t23, t23_value);
+      1 && t19_value !== (t19_value = /*$mapStore*/
+      ctx2[0].parksVisible ? "ON" : "OFF")) set_data(t19, t19_value);
       if (dirty & /*$mapStore*/
       1) {
         toggle_class(
@@ -10954,8 +11059,8 @@ function create_fragment$2(ctx) {
         button2.disabled = button2_disabled_value;
       }
       if (dirty & /*$mapStore*/
-      1 && t32_value !== (t32_value = /*$mapStore*/
-      ctx2[0].riversVisible ? "ON" : "OFF")) set_data(t32, t32_value);
+      1 && t29_value !== (t29_value = /*$mapStore*/
+      ctx2[0].riversVisible ? "ON" : "OFF")) set_data(t29, t29_value);
       if (dirty & /*$mapStore*/
       1) {
         toggle_class(
@@ -10971,8 +11076,8 @@ function create_fragment$2(ctx) {
         button3.disabled = button3_disabled_value;
       }
       if (dirty & /*$mapStore*/
-      1 && t41_value !== (t41_value = /*$mapStore*/
-      ctx2[0].buildingsVisible ? "ON" : "OFF")) set_data(t41, t41_value);
+      1 && t39_value !== (t39_value = /*$mapStore*/
+      ctx2[0].buildingsVisible ? "ON" : "OFF")) set_data(t39, t39_value);
       if (dirty & /*$mapStore*/
       1) {
         toggle_class(
@@ -10988,8 +11093,8 @@ function create_fragment$2(ctx) {
         button4.disabled = button4_disabled_value;
       }
       if (dirty & /*$mapStore*/
-      1 && t50_value !== (t50_value = /*$mapStore*/
-      ctx2[0].routesVisible ? "ON" : "OFF")) set_data(t50, t50_value);
+      1 && t49_value !== (t49_value = /*$mapStore*/
+      ctx2[0].routesVisible ? "ON" : "OFF")) set_data(t49, t49_value);
       if (dirty & /*$mapStore*/
       1) {
         toggle_class(
@@ -11022,8 +11127,8 @@ function create_fragment$2(ctx) {
         button6.disabled = button6_disabled_value;
       }
       if (dirty & /*$mapStore*/
-      1 && t68_value !== (t68_value = /*$mapStore*/
-      ctx2[0].peaksVisible ? "ON" : "OFF")) set_data(t68, t68_value);
+      1 && t69_value !== (t69_value = /*$mapStore*/
+      ctx2[0].peaksVisible ? "ON" : "OFF")) set_data(t69, t69_value);
       if (dirty & /*$mapStore*/
       1) {
         toggle_class(
@@ -11039,8 +11144,8 @@ function create_fragment$2(ctx) {
         button7.disabled = button7_disabled_value;
       }
       if (dirty & /*$mapStore*/
-      1 && t75_value !== (t75_value = /*$mapStore*/
-      ctx2[0].panZoomStep + "")) set_data(t75, t75_value);
+      1 && t81_value !== (t81_value = /*$mapStore*/
+      ctx2[0].panZoomStep + "")) set_data(t81, t81_value);
       if (dirty & /*$mapStore*/
       1 && button8_disabled_value !== (button8_disabled_value = !/*$mapStore*/
       ctx2[0].initialized)) {
@@ -11057,6 +11162,15 @@ function create_fragment$2(ctx) {
       run_all(dispose);
     }
   };
+}
+function formatCount(num) {
+  if (num >= 1e6) {
+    return (num / 1e6).toFixed(1) + "m";
+  }
+  if (num >= 1e3) {
+    return (num / 1e3).toFixed(1) + "k";
+  }
+  return num.toString();
 }
 function instance$2($$self, $$props, $$invalidate) {
   let $mapStore;

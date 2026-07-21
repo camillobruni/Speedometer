@@ -9,7 +9,8 @@ import transitGzUrl from "../data/transit.json.gz?url";
 
 async function fetchAndDecompressJson(url) {
     const response = await fetch(url);
-    if (!response.ok) throw new Error(`Failed to load dataset: ${url}`);
+    if (!response.ok)
+        throw new Error(`Failed to load dataset: ${url}`);
     const buffer = await response.arrayBuffer();
     const bytes = new Uint8Array(buffer);
     let text;
@@ -30,19 +31,21 @@ let buildingsData = [];
 let transitData = [];
 
 function countVertices(coords) {
-    if (!Array.isArray(coords)) return 0;
-    if (coords.length >= 2 && typeof coords[0] === "number" && typeof coords[1] === "number") {
+    if (!Array.isArray(coords))
+        return 0;
+    if (coords.length >= 2 && typeof coords[0] === "number" && typeof coords[1] === "number")
         return 1;
-    }
+
     return coords.reduce((sum, item) => sum + countVertices(item), 0);
 }
 
 export function computeLayerStats(data) {
-    if (!Array.isArray(data)) return { features: 0, vertices: 0 };
+    if (!Array.isArray(data))
+        return { features: 0, vertices: 0 };
     let vertices = 0;
-    for (const item of data) {
+    for (const item of data)
         vertices += countVertices(item.coordinates);
-    }
+
     return {
         features: data.length,
         vertices
@@ -80,22 +83,34 @@ export async function initializeDatasets() {
     transitStats = computeLayerStats(transitData);
 }
 
-export function getRoutesData() { return routesData; }
-export function getRiversData() { return riversData; }
-export function getPeaksData() { return peaksData; }
-export function getParksData() { return parksData; }
-export function getBuildingsData() { return buildingsData; }
-export function getTransitData() { return transitData; }
+export function getRoutesData() {
+    return routesData;
+}
+export function getRiversData() {
+    return riversData;
+}
+export function getPeaksData() {
+    return peaksData;
+}
+export function getParksData() {
+    return parksData;
+}
+export function getBuildingsData() {
+    return buildingsData;
+}
+export function getTransitData() {
+    return transitData;
+}
 
 export function createRouteLayerGroup() {
     const renderer = L.canvas({ padding: 0.5 });
     const optionsByClass = Object.freeze({
-        highway:     Object.freeze({ renderer, color: ROAD_STYLES.highway.color,     weight: ROAD_STYLES.highway.weight,     opacity: ROAD_STYLES.highway.opacity,     interactive: false }),
-        arterial:    Object.freeze({ renderer, color: ROAD_STYLES.arterial.color,    weight: ROAD_STYLES.arterial.weight,    opacity: ROAD_STYLES.arterial.opacity,    interactive: false }),
-        collector:   Object.freeze({ renderer, color: ROAD_STYLES.collector.color,   weight: ROAD_STYLES.collector.weight,   opacity: ROAD_STYLES.collector.opacity,   interactive: false }),
+        highway: Object.freeze({ renderer, color: ROAD_STYLES.highway.color, weight: ROAD_STYLES.highway.weight, opacity: ROAD_STYLES.highway.opacity, interactive: false }),
+        arterial: Object.freeze({ renderer, color: ROAD_STYLES.arterial.color, weight: ROAD_STYLES.arterial.weight, opacity: ROAD_STYLES.arterial.opacity, interactive: false }),
+        collector: Object.freeze({ renderer, color: ROAD_STYLES.collector.color, weight: ROAD_STYLES.collector.weight, opacity: ROAD_STYLES.collector.opacity, interactive: false }),
         residential: Object.freeze({ renderer, color: ROAD_STYLES.residential.color, weight: ROAD_STYLES.residential.weight, opacity: ROAD_STYLES.residential.opacity, interactive: false }),
-        alley:       Object.freeze({ renderer, color: ROAD_STYLES.alley.color,       weight: ROAD_STYLES.alley.weight,       opacity: ROAD_STYLES.alley.opacity,       interactive: false }),
-        default:     Object.freeze({ renderer, color: ROAD_STYLES.default.color,     weight: ROAD_STYLES.default.weight,     opacity: ROAD_STYLES.default.opacity,     interactive: false })
+        alley: Object.freeze({ renderer, color: ROAD_STYLES.alley.color, weight: ROAD_STYLES.alley.weight, opacity: ROAD_STYLES.alley.opacity, interactive: false }),
+        default: Object.freeze({ renderer, color: ROAD_STYLES.default.color, weight: ROAD_STYLES.default.weight, opacity: ROAD_STYLES.default.opacity, interactive: false })
     });
     const layers = routesData.map(route => L.polyline(route.coordinates, optionsByClass[route.class] || optionsByClass.default));
     return L.layerGroup(layers);
@@ -119,11 +134,11 @@ export function createRiverLayerGroup() {
         interactive: false
     });
     const layers = riversData.map(feature => {
-        if (feature.type === "polygon") {
+        if (feature.type === "polygon")
             return L.polygon(feature.coordinates, polygonOptions);
-        } else {
+        else
             return L.polyline(feature.coordinates, polylineOptions);
-        }
+
     });
     return L.layerGroup(layers);
 }

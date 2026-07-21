@@ -15,7 +15,7 @@
                 console.error("Error in rAF callback:", e);
             }
         }, 0);
-        pendingCallbacks.set(id, { type: 'raf', callback, timerId });
+        pendingCallbacks.set(id, { type: "raf", callback, timerId });
         return id;
     };
 
@@ -43,7 +43,7 @@
                 console.error("Error in rIC callback:", e);
             }
         }, 0);
-        pendingCallbacks.set(id, { type: 'ric', callback, timerId });
+        pendingCallbacks.set(id, { type: "ric", callback, timerId });
         return id;
     };
 
@@ -65,9 +65,9 @@
                     origClearTimeout(item.timerId);
                     pendingCallbacks.delete(id);
                     try {
-                        if (item.type === 'raf') {
+                        if (item.type === "raf") {
                             item.callback(performance.now());
-                        } else if (item.type === 'ric') {
+                        } else if (item.type === "ric") {
                             const start = performance.now();
                             item.callback({
                                 didTimeout: false,

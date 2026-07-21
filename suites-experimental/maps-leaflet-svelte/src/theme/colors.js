@@ -1,10 +1,10 @@
 export const ROAD_STYLES = {
-    highway:     { color: "#ff8c00", weight: 3.0, opacity: 0.9 },
-    arterial:    { color: "#ffe66d", weight: 2.5, opacity: 0.85 },
-    collector:   { color: "#ffffff", weight: 2.0, opacity: 0.8 },
+    highway: { color: "#ff8c00", weight: 3.0, opacity: 0.9 },
+    arterial: { color: "#ffe66d", weight: 2.5, opacity: 0.85 },
+    collector: { color: "#ffffff", weight: 2.0, opacity: 0.8 },
     residential: { color: "#8892b0", weight: 1.2, opacity: 0.7 },
-    alley:       { color: "#64748b", weight: 0.8, opacity: 0.6 },
-    default:     { color: "#8892b0", weight: 1.2, opacity: 0.7 }
+    alley: { color: "#64748b", weight: 0.8, opacity: 0.6 },
+    default: { color: "#8892b0", weight: 1.2, opacity: 0.7 }
 };
 
 export const THEME_COLORS = {

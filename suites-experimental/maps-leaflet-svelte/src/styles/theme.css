@@ -30,7 +30,7 @@
 }
 
 /* Speedometer Rule 6: 100% Full Section Text Opacity Guarantee */
-.section-card, .control-btn, .control-btn:disabled, .panel-title, .section-title, .btn-label-row {
+.section-card, .control-btn, .control-btn:disabled, .panel-title, .section-title, .btn-label-row, .btn-top-row, .btn-label-group, .layer-icon, .btn-telemetry, .status-indicator {
     opacity: 1 !important;
 }
 
@@ -60,16 +60,16 @@ body, html {
 }
 
 .sidebar {
-    width: 320px;
-    min-width: 320px;
-    height: calc(100% - 32px);
-    margin: 16px;
+    width: 180px;
+    min-width: 180px;
+    height: calc(100% - 16px);
+    margin: 8px;
     background-color: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-panel);
     display: flex;
     flex-direction: column;
-    padding: 20px;
+    padding: 10px;
     box-sizing: border-box;
     overflow-y: auto;
     z-index: 1000;
@@ -77,8 +77,8 @@ body, html {
 
 .viewport-container {
     flex: 1;
-    height: calc(100% - 32px);
-    margin: 16px 16px 16px 0;
+    height: calc(100% - 16px);
+    margin: 8px 8px 8px 0;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-panel);
     overflow: hidden;
@@ -92,20 +92,20 @@ body, html {
 }
 
 .panel-header {
-    margin-bottom: 20px;
+    margin-bottom: 12px;
     border-bottom: 1px solid var(--color-border);
-    padding-bottom: 12px;
+    padding-bottom: 8px;
 }
 
 .panel-title {
-    font-size: 1.25rem;
+    font-size: 1.15rem;
     font-weight: 700;
     margin: 0 0 4px 0;
     color: var(--color-text);
 }
 
 .panel-subtitle {
-    font-size: 0.85rem;
+    font-size: 0.75rem;
     color: var(--color-text-muted);
     margin: 0;
 }
@@ -114,34 +114,35 @@ body, html {
     background-color: var(--color-background);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-card);
-    padding: 16px;
-    margin-bottom: 16px;
+    padding: 10px;
+    margin-bottom: 12px;
 }
 
 .section-title {
-    font-size: 0.9rem;
+    font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.04em;
     color: var(--color-text-muted);
-    margin: 0 0 12px 0;
+    margin: 0 0 8px 0;
 }
 
 .control-btn {
     width: 100%;
-    padding: 10px 14px;
-    margin-bottom: 8px;
+    padding: 6px 8px;
+    margin-bottom: 6px;
     background-color: var(--color-surface);
     color: var(--color-text);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-control);
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     font-weight: 500;
     cursor: pointer;
     text-align: left;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
+    gap: 4px;
+    box-sizing: border-box;
 }
 
 .control-btn:hover {
@@ -153,24 +154,43 @@ body, html {
     margin-bottom: 0;
 }
 
-.badge {
-    display: inline-block;
-    width: 12px;
-    height: 12px;
-    border-radius: var(--radius-control);
-    margin-right: 8px;
-}
-
-.badge-route { background-color: var(--color-route-highway); }
-.badge-river { background-color: var(--color-river); }
-.badge-peak { background-color: var(--color-peak); }
-.badge-park { background-color: var(--color-park); }
-.badge-building { background-color: var(--color-building); }
-.badge-transit { background-color: var(--color-transit); }
 
 .btn-label-row {
     display: flex;
     align-items: center;
+}
+
+.btn-top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.btn-label-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+}
+
+.layer-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+.btn-telemetry {
+    font-family: monospace, ui-monospace, "SFMono-Regular", Menlo, Consolas;
+    font-size: 0.68rem;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: -0.3px;
 }
 
 .status-indicator {

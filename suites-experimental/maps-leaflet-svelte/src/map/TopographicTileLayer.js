@@ -21,9 +21,9 @@ export const TopographicTileLayer = L.GridLayer.extend({
 
     _getPooledCanvas: function (size) {
         let canvas = canvasPool.pop();
-        if (!canvas) {
+        if (!canvas)
             canvas = document.createElement("canvas");
-        }
+
         canvas.width = size.x;
         canvas.height = size.y;
         return canvas;

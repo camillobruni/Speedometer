@@ -8,5 +8,6 @@ export const mapStore = writable({
     parksVisible: false,
     buildingsVisible: false,
     transitVisible: false,
-    panZoomStep: 0
+    panZoomStep: 0,
+    activeStep: 0
 });
