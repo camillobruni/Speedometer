@@ -6,6 +6,7 @@ export default defineConfig({
     base: "./",
     plugins: [svelte()],
     build: {
+        assetsInlineLimit: 0,
         modulePreload: { polyfill: false },
         minify: false,
         sourcemap: true,

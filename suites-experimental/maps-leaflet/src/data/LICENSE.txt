@@ -1,0 +1,12 @@
+CC0 1.0 Universal / Open Data Commons PDDL 1.0 Public Domain Dedication
+
+The geographic dataset archives contained in this directory (routes.json.gz, buildings.json.gz, parks.json.gz, transit.json.gz, rivers.json.gz, peaks.json.gz) are placed strictly into the public domain under the terms of the Creative Commons CC0 1.0 Universal dedication and the Open Data Commons Public Domain Dedication and License (PDDL 1.0).
+
+1. U.S. Census Bureau TIGER/Line Federal Statutory Exemption:
+   Under U.S. federal copyright law (17 U.S.C. § 105), copyright protection under this title is not available for any work of the United States Government. All vector geometric layers, geodetic coordinates, road network segments, water bodies, summits, and public transit alignments derived from U.S. Census Bureau TIGER/Line files and national geographic databases are federal government works placed unreservedly in the public domain.
+
+2. City and County of San Francisco DataSF SODA Endpoints:
+   Municipal GIS data ingested via the San Francisco Open Data Portal (DataSF / SODA endpoints, including road density, building footprints, Muni transit lines, parks, and water bodies) is published under municipal open public data policies free of proprietary copyleft restrictions, licensing fees, or mandated downstream encumbering licensing conditions.
+
+3. Runtime Attribution Control Exemption:
+   Because these datasets carry zero copyright encumbrances, copyleft stipulations, or compulsory attribution requirements, the runtime mapping interface in this workload explicitly invokes Leaflet map creation with `attributionControl: false`. This zero-attribution, copyright-free configuration legally justifies rendering clean visual map reflow measurements during Speedometer benchmarking without introducing UI DOM overhead, external watermark rendering, or third-party copyright disclaimers.

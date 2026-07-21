@@ -1,5 +1,14 @@
+assets/buildings.json.gz
 assets/index.css
 assets/index.js
 assets/index.js.map
+assets/layers-2x.png
+assets/layers.png
+assets/marker-icon.png
+assets/parks.json.gz
+assets/peaks.json.gz
+assets/rivers.json.gz
+assets/routes.json.gz
+assets/transit.json.gz
 async-mock.js
 index.html

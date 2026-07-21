@@ -1,19 +1,33 @@
 import L from "leaflet";
 import { THEME_COLORS, ROAD_STYLES } from "../theme/colors.js";
-import routesRaw from "../data/routes.json?raw";
-import riversRaw from "../data/rivers.json?raw";
-import peaksRaw from "../data/peaks.json?raw";
-import parksRaw from "../data/parks.json?raw";
-import buildingsRaw from "../data/buildings.json?raw";
-import transitRaw from "../data/transit.json?raw";
+import routesGzUrl from "../data/routes.json.gz?url";
+import riversGzUrl from "../data/rivers.json.gz?url";
+import peaksGzUrl from "../data/peaks.json.gz?url";
+import parksGzUrl from "../data/parks.json.gz?url";
+import buildingsGzUrl from "../data/buildings.json.gz?url";
+import transitGzUrl from "../data/transit.json.gz?url";
 
-// Pre-parse at module evaluation time for Zero-GC during benchmark execution
-const routesData = JSON.parse(routesRaw);
-const riversData = JSON.parse(riversRaw);
-const peaksData = JSON.parse(peaksRaw);
-const parksData = JSON.parse(parksRaw);
-const buildingsData = JSON.parse(buildingsRaw);
-const transitData = JSON.parse(transitRaw);
+async function fetchAndDecompressJson(url) {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Failed to load dataset: ${url}`);
+    const buffer = await response.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+    let text;
+    if (bytes[0] === 0x1f && bytes[1] === 0x8b) {
+        const stream = new Blob([buffer]).stream().pipeThrough(new DecompressionStream("gzip"));
+        text = await new Response(stream).text();
+    } else {
+        text = new TextDecoder().decode(buffer);
+    }
+    return JSON.parse(text);
+}
+
+let routesData = [];
+let riversData = [];
+let peaksData = [];
+let parksData = [];
+let buildingsData = [];
+let transitData = [];
 
 function countVertices(coords) {
     if (!Array.isArray(coords)) return 0;
@@ -35,12 +49,36 @@ export function computeLayerStats(data) {
     };
 }
 
-export const routesStats = computeLayerStats(routesData);
-export const riversStats = computeLayerStats(riversData);
-export const peaksStats = computeLayerStats(peaksData);
-export const parksStats = computeLayerStats(parksData);
-export const buildingsStats = computeLayerStats(buildingsData);
-export const transitStats = computeLayerStats(transitData);
+export let routesStats = { features: 0, vertices: 0 };
+export let riversStats = { features: 0, vertices: 0 };
+export let peaksStats = { features: 0, vertices: 0 };
+export let parksStats = { features: 0, vertices: 0 };
+export let buildingsStats = { features: 0, vertices: 0 };
+export let transitStats = { features: 0, vertices: 0 };
+
+export async function initializeDatasets() {
+    const [routes, rivers, peaks, parks, buildings, transit] = await Promise.all([
+        fetchAndDecompressJson(routesGzUrl),
+        fetchAndDecompressJson(riversGzUrl),
+        fetchAndDecompressJson(peaksGzUrl),
+        fetchAndDecompressJson(parksGzUrl),
+        fetchAndDecompressJson(buildingsGzUrl),
+        fetchAndDecompressJson(transitGzUrl)
+    ]);
+    routesData = routes;
+    riversData = rivers;
+    peaksData = peaks;
+    parksData = parks;
+    buildingsData = buildings;
+    transitData = transit;
+
+    routesStats = computeLayerStats(routesData);
+    riversStats = computeLayerStats(riversData);
+    peaksStats = computeLayerStats(peaksData);
+    parksStats = computeLayerStats(parksData);
+    buildingsStats = computeLayerStats(buildingsData);
+    transitStats = computeLayerStats(transitData);
+}
 
 export function getRoutesData() { return routesData; }
 export function getRiversData() { return riversData; }

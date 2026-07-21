@@ -5,10 +5,10 @@ import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const rawDir = path.resolve(__dirname, "../src/data-raw");
+const dataDir = path.resolve(__dirname, "../src/data");
 
-if (!fs.existsSync(rawDir)) {
-    fs.mkdirSync(rawDir, { recursive: true });
+if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
 }
 
 function invertAndRoundCoordinates(coords) {
@@ -120,7 +120,7 @@ async function fetchSodaPaginated(baseUrl, maxRecords = 50000, pageSize = 5000) 
 }
 
 function saveOrFallback(fileName, features, processorFn) {
-    const filePath = path.join(rawDir, fileName);
+    const filePath = path.join(dataDir, fileName);
     if (!features || features.length === 0) {
         if (fs.existsSync(filePath)) {
             console.log(` -> Network fetch unavailable or empty; using valid local archive at ${filePath}`);
@@ -201,7 +201,7 @@ async function runIngestion() {
     });
 
     console.log("3. Sanitizing Peaks dataset (peaks.json.gz)...");
-    const peaksPath = path.join(rawDir, "peaks.json.gz");
+    const peaksPath = path.join(dataDir, "peaks.json.gz");
     if (fs.existsSync(peaksPath)) {
         const compressedPeaks = fs.readFileSync(peaksPath);
         const peaksData = JSON.parse(zlib.gunzipSync(compressedPeaks).toString("utf8"));
