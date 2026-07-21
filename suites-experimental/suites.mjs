@@ -292,4 +292,34 @@ export const ExperimentalSuites = freezeSuites([
             }),
         ],
     },
+    {
+        name: "Maps-Leaflet-Svelte",
+        url: "suites-experimental/maps-leaflet/dist/index.html",
+        resources: "suites-experimental/maps-leaflet/dist/resources.txt",
+        tags: ["experimental", "maps", "leaflet", "svelte", "canvas"],
+        async prepare(page) {
+            await page.waitForElement("#app-ready-indicator");
+        },
+        tests: [
+            new BenchmarkTestStep("InitializeMap", (page) => {
+                page.call("benchmarkInitializeMap");
+                page.call("benchmarkFlushAsync");
+            }),
+            new BenchmarkTestStep("AddComplexOverlays", (page) => {
+                page.call("benchmarkAddOverlays");
+                page.call("benchmarkFlushAsync");
+            }),
+            new BenchmarkTestStep("PanAndZoomIncrements", (page) => {
+                for (let i = 0; i < 5; i++) {
+                    page.call("benchmarkNextPanZoomIncrement");
+                    page.call("benchmarkFlushAsync");
+                    page.layout();
+                }
+            }),
+            new BenchmarkTestStep("TeardownAndClean", (page) => {
+                page.call("benchmarkTeardown");
+                page.call("benchmarkFlushAsync");
+            }),
+        ],
+    },
 ]);

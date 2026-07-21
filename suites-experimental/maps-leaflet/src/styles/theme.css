@@ -1,0 +1,221 @@
+:root {
+    --color-route: #ff6b6b;
+    --color-route-highway: #ff8c00;
+    --color-route-arterial: #ffe66d;
+    --color-river: #4ecdc4;
+    --color-park: #38b000;
+    --color-building: #e07a5f;
+    --color-building-tall: #e76f51;
+    --color-transit: #c77dff;
+    --color-peak: #ffe66d;
+    --color-terrain: #1a1e29;
+    --color-background: #090d16;
+    --color-surface: #1e293b;
+    --color-surface-hover: #2d3e56;
+    --color-border: #334155;
+    --color-text: #f8fafc;
+    --color-text-muted: #94a3b8;
+    --color-accent: #3b82f6;
+
+    --radius-panel: 16px;
+    --radius-card: 12px;
+    --radius-control: 8px;
+}
+
+/* Global Animation & Transition Ban for Speedometer Determinism */
+*, *::before, *::after {
+    transition: none !important;
+    animation: none !important;
+    box-shadow: none !important;
+}
+
+/* Speedometer Rule 6: 100% Full Section Text Opacity Guarantee */
+.section-card, .control-btn, .control-btn:disabled, .panel-title, .section-title, .btn-label-row {
+    opacity: 1 !important;
+}
+
+body, html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--color-background);
+    color: var(--color-text);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    overflow: hidden;
+}
+
+#app {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    overflow: hidden;
+}
+
+.app-layout {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    height: 100%;
+}
+
+.sidebar {
+    width: 320px;
+    min-width: 320px;
+    height: calc(100% - 32px);
+    margin: 16px;
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-panel);
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    box-sizing: border-box;
+    overflow-y: auto;
+    z-index: 1000;
+}
+
+.viewport-container {
+    flex: 1;
+    height: calc(100% - 32px);
+    margin: 16px 16px 16px 0;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-panel);
+    overflow: hidden;
+    position: relative;
+    background-color: var(--color-terrain);
+}
+
+#map-container {
+    width: 100%;
+    height: 100%;
+}
+
+.panel-header {
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 12px;
+}
+
+.panel-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0 0 4px 0;
+    color: var(--color-text);
+}
+
+.panel-subtitle {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    margin: 0;
+}
+
+.section-card {
+    background-color: var(--color-background);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.section-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted);
+    margin: 0 0 12px 0;
+}
+
+.control-btn {
+    width: 100%;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    background-color: var(--color-surface);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-control);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.control-btn:hover {
+    background-color: var(--color-surface-hover);
+    border-color: var(--color-accent);
+}
+
+.control-btn:last-child {
+    margin-bottom: 0;
+}
+
+.badge {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: var(--radius-control);
+    margin-right: 8px;
+}
+
+.badge-route { background-color: var(--color-route-highway); }
+.badge-river { background-color: var(--color-river); }
+.badge-peak { background-color: var(--color-peak); }
+.badge-park { background-color: var(--color-park); }
+.badge-building { background-color: var(--color-building); }
+.badge-transit { background-color: var(--color-transit); }
+
+.btn-label-row {
+    display: flex;
+    align-items: center;
+}
+
+.status-indicator {
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: var(--radius-control);
+    background-color: var(--color-border);
+    color: var(--color-text-muted);
+}
+
+.status-active {
+    background-color: var(--color-accent);
+    color: #fff;
+}
+
+/* Leaflet Overrides */
+.leaflet-container {
+    background-color: var(--color-terrain) !important;
+    font-family: inherit !important;
+}
+
+.leaflet-control-attribution,
+.leaflet-control-zoom {
+    border-radius: var(--radius-control) !important;
+    border: 1px solid var(--color-border) !important;
+    background-color: var(--color-surface) !important;
+    color: var(--color-text) !important;
+}
+
+.leaflet-bar a {
+    background-color: var(--color-surface) !important;
+    color: var(--color-text) !important;
+    border-bottom: 1px solid var(--color-border) !important;
+}
+
+.leaflet-bar a:hover {
+    background-color: var(--color-surface-hover) !important;
+}
+
+#app-ready-indicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}

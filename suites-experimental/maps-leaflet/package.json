@@ -1,0 +1,17 @@
+{
+    "name": "maps-leaflet-svelte",
+    "private": true,
+    "version": "1.0.0",
+    "type": "module",
+    "scripts": {
+        "build": "node scripts/build.mjs"
+    },
+    "dependencies": {
+        "leaflet": "^1.9.4",
+        "svelte": "^4.2.18"
+    },
+    "devDependencies": {
+        "@sveltejs/vite-plugin-svelte": "^3.1.1",
+        "vite": "^5.3.4"
+    }
+}

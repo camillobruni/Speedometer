@@ -11,3 +11,4 @@ node_modules/
 
 
 /suites-experimental/**/build-dev/
+/suites-experimental/maps-leaflet/src/data/*.json
