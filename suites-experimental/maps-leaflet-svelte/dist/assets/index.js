@@ -385,6 +385,7 @@ function writable(value, start = noop) {
 }
 const mapStore = writable({
   initialized: false,
+  decompressed: false,
   routesVisible: false,
   riversVisible: false,
   peaksVisible: false,
@@ -10040,27 +10041,13 @@ const peaksGzUrl = "" + new URL("peaks.json.gz", import.meta.url).href;
 const parksGzUrl = "" + new URL("parks.json.gz", import.meta.url).href;
 const buildingsGzUrl = "" + new URL("buildings.json.gz", import.meta.url).href;
 const transitGzUrl = "" + new URL("transit.json.gz", import.meta.url).href;
-async function fetchAndDecompressJson(url) {
-  const response = await fetch(url);
-  if (!response.ok)
-    throw new Error(`Failed to load dataset: ${url}`);
-  const buffer = await response.arrayBuffer();
-  const bytes = new Uint8Array(buffer);
-  let text2;
-  if (bytes[0] === 31 && bytes[1] === 139) {
-    const stream = new Blob([buffer]).stream().pipeThrough(new DecompressionStream("gzip"));
-    text2 = await new Response(stream).text();
-  } else {
-    text2 = new TextDecoder().decode(buffer);
-  }
-  return JSON.parse(text2);
-}
-let routesData = [];
-let riversData = [];
-let peaksData = [];
-let parksData = [];
-let buildingsData = [];
-let transitData = [];
+let rawBuffers = { routes: null, rivers: null, peaks: null, parks: null, buildings: null, transit: null };
+let routesData = null;
+let riversData = null;
+let peaksData = null;
+let parksData = null;
+let buildingsData = null;
+let transitData = null;
 function countVertices(coords) {
   if (!Array.isArray(coords))
     return 0;
@@ -10085,14 +10072,43 @@ let peaksStats = { features: 0, vertices: 0 };
 let parksStats = { features: 0, vertices: 0 };
 let buildingsStats = { features: 0, vertices: 0 };
 let transitStats = { features: 0, vertices: 0 };
-async function initializeDatasets() {
+async function loadRawBuffers() {
+  if (rawBuffers.routes && rawBuffers.rivers && rawBuffers.peaks && rawBuffers.parks && rawBuffers.buildings && rawBuffers.transit)
+    return;
+  const fetchBuffer = async (url) => {
+    const response = await fetch(url);
+    if (!response.ok)
+      throw new Error(`Failed to load dataset: ${url}`);
+    return await response.arrayBuffer();
+  };
   const [routes, rivers, peaks, parks, buildings, transit] = await Promise.all([
-    fetchAndDecompressJson(routesGzUrl),
-    fetchAndDecompressJson(riversGzUrl),
-    fetchAndDecompressJson(peaksGzUrl),
-    fetchAndDecompressJson(parksGzUrl),
-    fetchAndDecompressJson(buildingsGzUrl),
-    fetchAndDecompressJson(transitGzUrl)
+    fetchBuffer(routesGzUrl),
+    fetchBuffer(riversGzUrl),
+    fetchBuffer(peaksGzUrl),
+    fetchBuffer(parksGzUrl),
+    fetchBuffer(buildingsGzUrl),
+    fetchBuffer(transitGzUrl)
+  ]);
+  rawBuffers = { routes, rivers, peaks, parks, buildings, transit };
+}
+async function decompressAndParseBuffer(buffer) {
+  if (!buffer)
+    return [];
+  const bytes = new Uint8Array(buffer);
+  if (bytes[0] === 31 && bytes[1] === 139) {
+    const stream = new Blob([buffer]).stream().pipeThrough(new DecompressionStream("gzip"));
+    return await new Response(stream).json();
+  }
+  return JSON.parse(new TextDecoder().decode(buffer));
+}
+async function decompressAndParseDatasets() {
+  const [routes, rivers, peaks, parks, buildings, transit] = await Promise.all([
+    decompressAndParseBuffer(rawBuffers.routes),
+    decompressAndParseBuffer(rawBuffers.rivers),
+    decompressAndParseBuffer(rawBuffers.peaks),
+    decompressAndParseBuffer(rawBuffers.parks),
+    decompressAndParseBuffer(rawBuffers.buildings),
+    decompressAndParseBuffer(rawBuffers.transit)
   ]);
   routesData = routes;
   riversData = rivers;
@@ -10107,6 +10123,20 @@ async function initializeDatasets() {
   buildingsStats = computeLayerStats(buildingsData);
   transitStats = computeLayerStats(transitData);
 }
+function resetParsedDatasets() {
+  routesData = null;
+  riversData = null;
+  peaksData = null;
+  parksData = null;
+  buildingsData = null;
+  transitData = null;
+  routesStats = { features: 0, vertices: 0 };
+  riversStats = { features: 0, vertices: 0 };
+  peaksStats = { features: 0, vertices: 0 };
+  parksStats = { features: 0, vertices: 0 };
+  buildingsStats = { features: 0, vertices: 0 };
+  transitStats = { features: 0, vertices: 0 };
+}
 function createRouteLayerGroup() {
   const renderer = L$1.canvas({ padding: 0.5 });
   const optionsByClass = Object.freeze({
@@ -10117,7 +10147,7 @@ function createRouteLayerGroup() {
     alley: Object.freeze({ renderer, color: ROAD_STYLES.alley.color, weight: ROAD_STYLES.alley.weight, opacity: ROAD_STYLES.alley.opacity, interactive: false }),
     default: Object.freeze({ renderer, color: ROAD_STYLES.default.color, weight: ROAD_STYLES.default.weight, opacity: ROAD_STYLES.default.opacity, interactive: false })
   });
-  const layers = routesData.map((route) => L$1.polyline(route.coordinates, optionsByClass[route.class] || optionsByClass.default));
+  const layers = (routesData || []).map((route) => L$1.polyline(route.coordinates, optionsByClass[route.class] || optionsByClass.default));
   return L$1.layerGroup(layers);
 }
 function createRiverLayerGroup() {
@@ -10137,7 +10167,7 @@ function createRiverLayerGroup() {
     opacity: 0.8,
     interactive: false
   });
-  const layers = riversData.map((feature) => {
+  const layers = (riversData || []).map((feature) => {
     if (feature.type === "polygon")
       return L$1.polygon(feature.coordinates, polygonOptions);
     else
@@ -10160,7 +10190,7 @@ function createPeakLayerGroup() {
     permanent: false,
     direction: "top"
   });
-  const layers = peaksData.map((peak) => {
+  const layers = (peaksData || []).map((peak) => {
     const marker = L$1.circleMarker(peak.coordinates, markerOptions);
     marker.bindTooltip(`${peak.name} (${peak.elevation}m)`, tooltipOptions);
     return marker;
@@ -10177,7 +10207,7 @@ function createParkLayerGroup() {
     weight: 1.5,
     interactive: false
   });
-  const layers = parksData.map((park) => {
+  const layers = (parksData || []).map((park) => {
     return park.type === "polygon" ? L$1.polygon(park.coordinates, options) : L$1.polyline(park.coordinates, options);
   });
   return L$1.layerGroup(layers);
@@ -10200,7 +10230,7 @@ function createBuildingLayerGroup() {
     weight: 1,
     interactive: false
   }));
-  const layers = buildingsData.map((building) => {
+  const layers = (buildingsData || []).map((building) => {
     const height = Number(building.hgt_median_m || 15);
     const bucketIdx = Math.min(19, Math.max(0, Math.floor((height - 10) / 190 * 20)));
     const options = height > 60 ? tallBuckets[bucketIdx] : normalBuckets[bucketIdx];
@@ -10218,7 +10248,7 @@ function createTransitLayerGroup() {
     dashArray: "5, 5",
     interactive: false
   });
-  const layers = transitData.map((line) => {
+  const layers = (transitData || []).map((line) => {
     return line.type === "polygon" ? L$1.polygon(line.coordinates, options) : L$1.polyline(line.coordinates, options);
   });
   return L$1.layerGroup(layers);
@@ -10238,6 +10268,18 @@ class BenchmarkDriver {
   }
   setContainer(element2) {
     this.mapContainer = element2;
+  }
+  async decompressAndParse() {
+    this.routeGroup = null;
+    this.riverGroup = null;
+    this.peakGroup = null;
+    this.parkGroup = null;
+    this.buildingGroup = null;
+    this.transitGroup = null;
+    await decompressAndParseDatasets();
+    mapStore.update((s) => ({ ...s, decompressed: true }));
+    if (typeof window !== "undefined")
+      window.dispatchEvent(new CustomEvent("dataset-decompress-complete"));
   }
   initializeMap() {
     if (!this.mapContainer) {
@@ -10514,8 +10556,10 @@ class BenchmarkDriver {
     this.buildingGroup = null;
     this.transitGroup = null;
     this.currentPanZoomIndex = 0;
+    resetParsedDatasets();
     mapStore.set({
       initialized: false,
+      decompressed: false,
       routesVisible: false,
       riversVisible: false,
       peaksVisible: false,
@@ -10534,6 +10578,7 @@ class BenchmarkDriver {
 const benchmarkDriver = new BenchmarkDriver();
 if (typeof window !== "undefined") {
   window.workload = benchmarkDriver;
+  window.benchmarkDecompressAndParse = () => benchmarkDriver.decompressAndParse();
   window.benchmarkInitializeMap = () => benchmarkDriver.initializeMap();
   window.benchmarkInitTerrain = () => benchmarkDriver.initTerrain();
   window.benchmarkAddOverlays = () => benchmarkDriver.addOverlays();
@@ -10551,7 +10596,7 @@ function create_fragment$2(ctx) {
   let aside;
   let div0;
   let t3;
-  let div3;
+  let div4;
   let h20;
   let t5;
   let button0;
@@ -10561,114 +10606,125 @@ function create_fragment$2(ctx) {
   let span1;
   let t8_value = (
     /*$mapStore*/
-    ctx[0].initialized ? "READY" : "OFF"
+    ctx[0].decompressed ? "READY" : "OFF"
   );
   let t8;
   let t9;
   let button1;
+  let div2;
+  let span2;
+  let t11;
+  let span3;
+  let t12_value = (
+    /*$mapStore*/
+    ctx[0].initialized ? "READY" : "OFF"
+  );
+  let t12;
   let t13;
-  let div16;
-  let h21;
-  let t15;
   let button2;
-  let div4;
-  let span6;
-  let t18;
-  let span7;
-  let t19_value = (
+  let t17;
+  let div17;
+  let h21;
+  let t19;
+  let button3;
+  let div5;
+  let span8;
+  let t22;
+  let span9;
+  let t23_value = (
     /*$mapStore*/
     ctx[0].parksVisible ? "ON" : "OFF"
   );
-  let t19;
-  let t20;
-  let div5;
-  let button2_disabled_value;
-  let t25;
-  let button3;
+  let t23;
+  let t24;
   let div6;
-  let span10;
-  let t28;
-  let span11;
-  let t29_value = (
+  let button3_disabled_value;
+  let t29;
+  let button4;
+  let div7;
+  let span12;
+  let t32;
+  let span13;
+  let t33_value = (
     /*$mapStore*/
     ctx[0].riversVisible ? "ON" : "OFF"
   );
-  let t29;
-  let t30;
-  let div7;
-  let button3_disabled_value;
-  let t35;
-  let button4;
+  let t33;
+  let t34;
   let div8;
-  let span14;
-  let t38;
-  let span15;
-  let t39_value = (
+  let button4_disabled_value;
+  let t39;
+  let button5;
+  let div9;
+  let span16;
+  let t42;
+  let span17;
+  let t43_value = (
     /*$mapStore*/
     ctx[0].buildingsVisible ? "ON" : "OFF"
   );
-  let t39;
-  let t40;
-  let div9;
-  let button4_disabled_value;
-  let t45;
-  let button5;
+  let t43;
+  let t44;
   let div10;
-  let span18;
-  let t48;
-  let span19;
-  let t49_value = (
+  let button5_disabled_value;
+  let t49;
+  let button6;
+  let div11;
+  let span20;
+  let t52;
+  let span21;
+  let t53_value = (
     /*$mapStore*/
     ctx[0].routesVisible ? "ON" : "OFF"
   );
-  let t49;
-  let t50;
-  let div11;
-  let button5_disabled_value;
-  let t55;
-  let button6;
+  let t53;
+  let t54;
   let div12;
-  let span22;
-  let t58;
-  let span23;
-  let t59_value = (
+  let button6_disabled_value;
+  let t59;
+  let button7;
+  let div13;
+  let span24;
+  let t62;
+  let span25;
+  let t63_value = (
     /*$mapStore*/
     ctx[0].transitVisible ? "ON" : "OFF"
   );
-  let t59;
-  let t60;
-  let div13;
-  let button6_disabled_value;
-  let t65;
-  let button7;
+  let t63;
+  let t64;
   let div14;
-  let span26;
-  let t68;
-  let span27;
-  let t69_value = (
+  let button7_disabled_value;
+  let t69;
+  let button8;
+  let div15;
+  let span28;
+  let t72;
+  let span29;
+  let t73_value = (
     /*$mapStore*/
     ctx[0].peaksVisible ? "ON" : "OFF"
   );
-  let t69;
-  let t70;
-  let div15;
-  let button7_disabled_value;
-  let t75;
-  let div18;
-  let h22;
-  let t77;
-  let button8;
-  let div17;
-  let span28;
+  let t73;
+  let t74;
+  let div16;
+  let button8_disabled_value;
   let t79;
-  let span29;
-  let t80;
-  let t81_value = (
+  let div19;
+  let h22;
+  let t81;
+  let button9;
+  let div18;
+  let span30;
+  let t83;
+  let span31;
+  let t84;
+  let t85_value = (
     /*$mapStore*/
     ctx[0].panZoomStep + ""
   );
-  let t81;
-  let button8_disabled_value;
+  let t85;
+  let button9_disabled_value;
   let mounted;
   let dispose;
   return {
@@ -10677,103 +10733,111 @@ function create_fragment$2(ctx) {
       div0 = element("div");
       div0.innerHTML = `<h1 class="panel-title">Layers</h1> <p class="panel-subtitle">SF TIGER/Line GIS</p>`;
       t3 = space();
-      div3 = element("div");
+      div4 = element("div");
       h20 = element("h2");
       h20.textContent = "Lifecycle & Init";
       t5 = space();
       button0 = element("button");
       div1 = element("div");
       span0 = element("span");
-      span0.textContent = "Initialize Map";
+      span0.textContent = "Decompress Data";
       t7 = space();
       span1 = element("span");
       t8 = text(t8_value);
       t9 = space();
       button1 = element("button");
-      button1.innerHTML = `<div class="btn-top-row"><span>Teardown</span> <span class="status-indicator">RESET</span></div>`;
+      div2 = element("div");
+      span2 = element("span");
+      span2.textContent = "Initialize Map";
+      t11 = space();
+      span3 = element("span");
+      t12 = text(t12_value);
       t13 = space();
-      div16 = element("div");
+      button2 = element("button");
+      button2.innerHTML = `<div class="btn-top-row"><span>Teardown</span> <span class="status-indicator">RESET</span></div>`;
+      t17 = space();
+      div17 = element("div");
       h21 = element("h2");
       h21.textContent = "Vector Overlays (CC0)";
-      t15 = space();
-      button2 = element("button");
-      div4 = element("div");
-      span6 = element("span");
-      span6.innerHTML = `<span class="layer-icon" title="Parks &amp; Green Spaces"><svg viewBox="0 0 18 18" width="16" height="16" stroke="currentColor" fill="none" stroke-width="1.3"><rect x="1.5" y="1.5" width="15" height="15" stroke-dasharray="2 2" rx="1"></rect><circle cx="9" cy="8" r="3.5"></circle><line x1="9" y1="11.5" x2="9" y2="15" stroke-width="1.5"></line></svg></span> <span>Parks</span>`;
-      t18 = space();
-      span7 = element("span");
-      t19 = text(t19_value);
-      t20 = space();
-      div5 = element("div");
-      div5.textContent = `${formatCount(parksStats.features)} feats | ${formatCount(parksStats.vertices)} verts`;
-      t25 = space();
+      t19 = space();
       button3 = element("button");
+      div5 = element("div");
+      span8 = element("span");
+      span8.innerHTML = `<span class="layer-icon" title="Parks &amp; Green Spaces"><svg viewBox="0 0 18 18" width="16" height="16" stroke="currentColor" fill="none" stroke-width="1.3"><rect x="1.5" y="1.5" width="15" height="15" stroke-dasharray="2 2" rx="1"></rect><circle cx="9" cy="8" r="3.5"></circle><line x1="9" y1="11.5" x2="9" y2="15" stroke-width="1.5"></line></svg></span> <span>Parks</span>`;
+      t22 = space();
+      span9 = element("span");
+      t23 = text(t23_value);
+      t24 = space();
       div6 = element("div");
-      span10 = element("span");
-      span10.innerHTML = `<span class="layer-icon" title="Coastal Hydrography"><svg viewBox="0 0 18 18" width="16" height="16" stroke="currentColor" fill="none" stroke-width="1.4" stroke-linecap="round"><path d="M2 5 C 6 2, 12 8, 16 5"></path><path d="M2 9 C 6 6, 12 12, 16 9"></path><path d="M2 13 C 6 10, 12 16, 16 13"></path></svg></span> <span>Rivers</span>`;
-      t28 = space();
-      span11 = element("span");
-      t29 = text(t29_value);
-      t30 = space();
-      div7 = element("div");
-      div7.textContent = `${formatCount(riversStats.features)} feats | ${formatCount(riversStats.vertices)} verts`;
-      t35 = space();
+      div6.textContent = `${formatCount(parksStats.features)} feats | ${formatCount(parksStats.vertices)} verts`;
+      t29 = space();
       button4 = element("button");
+      div7 = element("div");
+      span12 = element("span");
+      span12.innerHTML = `<span class="layer-icon" title="Coastal Hydrography"><svg viewBox="0 0 18 18" width="16" height="16" stroke="currentColor" fill="none" stroke-width="1.4" stroke-linecap="round"><path d="M2 5 C 6 2, 12 8, 16 5"></path><path d="M2 9 C 6 6, 12 12, 16 9"></path><path d="M2 13 C 6 10, 12 16, 16 13"></path></svg></span> <span>Rivers</span>`;
+      t32 = space();
+      span13 = element("span");
+      t33 = text(t33_value);
+      t34 = space();
       div8 = element("div");
-      span14 = element("span");
-      span14.innerHTML = `<span class="layer-icon" title="Downtown Buildings"><svg viewBox="0 0 18 18" width="16" height="16" stroke="currentColor" fill="none" stroke-width="1.3"><path d="M3 16 V 7 H 8 V 16"></path><path d="M8 16 V 3 H 15 V 16"></path><line x1="10" y1="6" x2="13" y2="6" stroke-width="1"></line><line x1="10" y1="9" x2="13" y2="9" stroke-width="1"></line><line x1="10" y1="12" x2="13" y2="12" stroke-width="1"></line><line x1="5" y1="10" x2="6" y2="10" stroke-width="1"></line><line x1="5" y1="13" x2="6" y2="13" stroke-width="1"></line></svg></span> <span>Buildings</span>`;
-      t38 = space();
-      span15 = element("span");
-      t39 = text(t39_value);
-      t40 = space();
-      div9 = element("div");
-      div9.textContent = `${formatCount(buildingsStats.features)} feats | ${formatCount(buildingsStats.vertices)} verts`;
-      t45 = space();
+      div8.textContent = `${formatCount(riversStats.features)} feats | ${formatCount(riversStats.vertices)} verts`;
+      t39 = space();
       button5 = element("button");
+      div9 = element("div");
+      span16 = element("span");
+      span16.innerHTML = `<span class="layer-icon" title="Downtown Buildings"><svg viewBox="0 0 18 18" width="16" height="16" stroke="currentColor" fill="none" stroke-width="1.3"><path d="M3 16 V 7 H 8 V 16"></path><path d="M8 16 V 3 H 15 V 16"></path><line x1="10" y1="6" x2="13" y2="6" stroke-width="1"></line><line x1="10" y1="9" x2="13" y2="9" stroke-width="1"></line><line x1="10" y1="12" x2="13" y2="12" stroke-width="1"></line><line x1="5" y1="10" x2="6" y2="10" stroke-width="1"></line><line x1="5" y1="13" x2="6" y2="13" stroke-width="1"></line></svg></span> <span>Buildings</span>`;
+      t42 = space();
+      span17 = element("span");
+      t43 = text(t43_value);
+      t44 = space();
       div10 = element("div");
-      span18 = element("span");
-      span18.innerHTML = `<span class="layer-icon" title="SF Road Networks"><svg viewBox="0 0 18 18" width="16" height="16" stroke="currentColor" fill="none" stroke-width="1.3"><line x1="1" y1="6" x2="17" y2="6"></line><line x1="1" y1="12" x2="17" y2="12"></line><line x1="6" y1="1" x2="6" y2="17"></line><line x1="12" y1="1" x2="12" y2="17"></line><line x1="1" y1="9" x2="17" y2="9" stroke-width="1" stroke-dasharray="2 2"></line><line x1="9" y1="1" x2="9" y2="17" stroke-width="1" stroke-dasharray="2 2"></line></svg></span> <span>Routes</span>`;
-      t48 = space();
-      span19 = element("span");
-      t49 = text(t49_value);
-      t50 = space();
-      div11 = element("div");
-      div11.textContent = `${formatCount(routesStats.features)} feats | ${formatCount(routesStats.vertices)} verts`;
-      t55 = space();
+      div10.textContent = `${formatCount(buildingsStats.features)} feats | ${formatCount(buildingsStats.vertices)} verts`;
+      t49 = space();
       button6 = element("button");
+      div11 = element("div");
+      span20 = element("span");
+      span20.innerHTML = `<span class="layer-icon" title="SF Road Networks"><svg viewBox="0 0 18 18" width="16" height="16" stroke="currentColor" fill="none" stroke-width="1.3"><line x1="1" y1="6" x2="17" y2="6"></line><line x1="1" y1="12" x2="17" y2="12"></line><line x1="6" y1="1" x2="6" y2="17"></line><line x1="12" y1="1" x2="12" y2="17"></line><line x1="1" y1="9" x2="17" y2="9" stroke-width="1" stroke-dasharray="2 2"></line><line x1="9" y1="1" x2="9" y2="17" stroke-width="1" stroke-dasharray="2 2"></line></svg></span> <span>Routes</span>`;
+      t52 = space();
+      span21 = element("span");
+      t53 = text(t53_value);
+      t54 = space();
       div12 = element("div");
-      span22 = element("span");
-      span22.innerHTML = `<span class="layer-icon" title="Muni Transit"><svg viewBox="0 0 18 18" width="16" height="16" stroke="currentColor" fill="none" stroke-width="1.4"><line x1="6" y1="2" x2="6" y2="16"></line><line x1="12" y1="2" x2="12" y2="16"></line><line x1="4" y1="4" x2="14" y2="4" stroke-width="1.2"></line><line x1="4" y1="8" x2="14" y2="8" stroke-width="1.2"></line><line x1="4" y1="12" x2="14" y2="12" stroke-width="1.2"></line><line x1="4" y1="16" x2="14" y2="16" stroke-width="1.2"></line></svg></span> <span>Transit</span>`;
-      t58 = space();
-      span23 = element("span");
-      t59 = text(t59_value);
-      t60 = space();
-      div13 = element("div");
-      div13.textContent = `${formatCount(transitStats.features)} feats | ${formatCount(transitStats.vertices)} verts`;
-      t65 = space();
+      div12.textContent = `${formatCount(routesStats.features)} feats | ${formatCount(routesStats.vertices)} verts`;
+      t59 = space();
       button7 = element("button");
+      div13 = element("div");
+      span24 = element("span");
+      span24.innerHTML = `<span class="layer-icon" title="Muni Transit"><svg viewBox="0 0 18 18" width="16" height="16" stroke="currentColor" fill="none" stroke-width="1.4"><line x1="6" y1="2" x2="6" y2="16"></line><line x1="12" y1="2" x2="12" y2="16"></line><line x1="4" y1="4" x2="14" y2="4" stroke-width="1.2"></line><line x1="4" y1="8" x2="14" y2="8" stroke-width="1.2"></line><line x1="4" y1="12" x2="14" y2="12" stroke-width="1.2"></line><line x1="4" y1="16" x2="14" y2="16" stroke-width="1.2"></line></svg></span> <span>Transit</span>`;
+      t62 = space();
+      span25 = element("span");
+      t63 = text(t63_value);
+      t64 = space();
       div14 = element("div");
-      span26 = element("span");
-      span26.innerHTML = `<span class="layer-icon" title="SF Landmarks &amp; Peaks"><svg viewBox="0 0 18 18" width="16" height="16" stroke="currentColor" fill="none" stroke-width="1.3"><path d="M2 15 L 9 3 L 16 15 Z" stroke-linejoin="round"></path><circle cx="9" cy="8" r="1" fill="currentColor" stroke="none"></circle><line x1="5.5" y1="10.5" x2="12.5" y2="10.5" stroke-width="1" stroke-dasharray="2 2"></line></svg></span> <span>Peaks</span>`;
-      t68 = space();
-      span27 = element("span");
-      t69 = text(t69_value);
-      t70 = space();
+      div14.textContent = `${formatCount(transitStats.features)} feats | ${formatCount(transitStats.vertices)} verts`;
+      t69 = space();
+      button8 = element("button");
       div15 = element("div");
-      div15.textContent = `${formatCount(peaksStats.features)} feats | ${formatCount(peaksStats.vertices)} verts`;
-      t75 = space();
-      div18 = element("div");
+      span28 = element("span");
+      span28.innerHTML = `<span class="layer-icon" title="SF Landmarks &amp; Peaks"><svg viewBox="0 0 18 18" width="16" height="16" stroke="currentColor" fill="none" stroke-width="1.3"><path d="M2 15 L 9 3 L 16 15 Z" stroke-linejoin="round"></path><circle cx="9" cy="8" r="1" fill="currentColor" stroke="none"></circle><line x1="5.5" y1="10.5" x2="12.5" y2="10.5" stroke-width="1" stroke-dasharray="2 2"></line></svg></span> <span>Peaks</span>`;
+      t72 = space();
+      span29 = element("span");
+      t73 = text(t73_value);
+      t74 = space();
+      div16 = element("div");
+      div16.textContent = `${formatCount(peaksStats.features)} feats | ${formatCount(peaksStats.vertices)} verts`;
+      t79 = space();
+      div19 = element("div");
       h22 = element("h2");
       h22.textContent = "Navigation";
-      t77 = space();
-      button8 = element("button");
-      div17 = element("div");
-      span28 = element("span");
-      span28.textContent = "Pan / Zoom Step";
-      t79 = space();
-      span29 = element("span");
-      t80 = text("Step ");
-      t81 = text(t81_value);
+      t81 = space();
+      button9 = element("button");
+      div18 = element("div");
+      span30 = element("span");
+      span30.textContent = "Pan / Zoom Step";
+      t83 = space();
+      span31 = element("span");
+      t84 = text("Step ");
+      t85 = text(t85_value);
       attr(div0, "class", "panel-header");
       attr(h20, "class", "section-title");
       attr(span1, "class", "status-indicator");
@@ -10781,193 +10845,210 @@ function create_fragment$2(ctx) {
         span1,
         "status-active",
         /*$mapStore*/
-        ctx[0].initialized
+        ctx[0].decompressed
       );
       attr(div1, "class", "btn-top-row");
-      attr(button0, "id", "btn-init-map");
+      attr(button0, "id", "btn-decompress-data");
       attr(button0, "class", "control-btn");
-      attr(button1, "id", "btn-teardown");
-      attr(button1, "class", "control-btn");
-      attr(div3, "class", "section-card");
-      attr(h21, "class", "section-title");
-      attr(span6, "class", "btn-label-group");
-      attr(span7, "class", "status-indicator");
+      attr(span3, "class", "status-indicator");
       toggle_class(
-        span7,
+        span3,
+        "status-active",
+        /*$mapStore*/
+        ctx[0].initialized
+      );
+      attr(div2, "class", "btn-top-row");
+      attr(button1, "id", "btn-init-map");
+      attr(button1, "class", "control-btn");
+      attr(button2, "id", "btn-teardown");
+      attr(button2, "class", "control-btn");
+      attr(div4, "class", "section-card");
+      attr(h21, "class", "section-title");
+      attr(span8, "class", "btn-label-group");
+      attr(span9, "class", "status-indicator");
+      toggle_class(
+        span9,
         "status-active",
         /*$mapStore*/
         ctx[0].parksVisible
       );
-      attr(div4, "class", "btn-top-row");
-      attr(div5, "class", "btn-telemetry");
-      attr(button2, "id", "btn-toggle-parks");
-      attr(button2, "class", "control-btn");
-      button2.disabled = button2_disabled_value = !/*$mapStore*/
+      attr(div5, "class", "btn-top-row");
+      attr(div6, "class", "btn-telemetry");
+      attr(button3, "id", "btn-toggle-parks");
+      attr(button3, "class", "control-btn");
+      button3.disabled = button3_disabled_value = !/*$mapStore*/
       ctx[0].initialized;
-      attr(span10, "class", "btn-label-group");
-      attr(span11, "class", "status-indicator");
+      attr(span12, "class", "btn-label-group");
+      attr(span13, "class", "status-indicator");
       toggle_class(
-        span11,
+        span13,
         "status-active",
         /*$mapStore*/
         ctx[0].riversVisible
       );
-      attr(div6, "class", "btn-top-row");
-      attr(div7, "class", "btn-telemetry");
-      attr(button3, "id", "btn-toggle-rivers");
-      attr(button3, "class", "control-btn");
-      button3.disabled = button3_disabled_value = !/*$mapStore*/
+      attr(div7, "class", "btn-top-row");
+      attr(div8, "class", "btn-telemetry");
+      attr(button4, "id", "btn-toggle-rivers");
+      attr(button4, "class", "control-btn");
+      button4.disabled = button4_disabled_value = !/*$mapStore*/
       ctx[0].initialized;
-      attr(span14, "class", "btn-label-group");
-      attr(span15, "class", "status-indicator");
+      attr(span16, "class", "btn-label-group");
+      attr(span17, "class", "status-indicator");
       toggle_class(
-        span15,
+        span17,
         "status-active",
         /*$mapStore*/
         ctx[0].buildingsVisible
       );
-      attr(div8, "class", "btn-top-row");
-      attr(div9, "class", "btn-telemetry");
-      attr(button4, "id", "btn-toggle-buildings");
-      attr(button4, "class", "control-btn");
-      button4.disabled = button4_disabled_value = !/*$mapStore*/
+      attr(div9, "class", "btn-top-row");
+      attr(div10, "class", "btn-telemetry");
+      attr(button5, "id", "btn-toggle-buildings");
+      attr(button5, "class", "control-btn");
+      button5.disabled = button5_disabled_value = !/*$mapStore*/
       ctx[0].initialized;
-      attr(span18, "class", "btn-label-group");
-      attr(span19, "class", "status-indicator");
+      attr(span20, "class", "btn-label-group");
+      attr(span21, "class", "status-indicator");
       toggle_class(
-        span19,
+        span21,
         "status-active",
         /*$mapStore*/
         ctx[0].routesVisible
       );
-      attr(div10, "class", "btn-top-row");
-      attr(div11, "class", "btn-telemetry");
-      attr(button5, "id", "btn-toggle-routes");
-      attr(button5, "class", "control-btn");
-      button5.disabled = button5_disabled_value = !/*$mapStore*/
+      attr(div11, "class", "btn-top-row");
+      attr(div12, "class", "btn-telemetry");
+      attr(button6, "id", "btn-toggle-routes");
+      attr(button6, "class", "control-btn");
+      button6.disabled = button6_disabled_value = !/*$mapStore*/
       ctx[0].initialized;
-      attr(span22, "class", "btn-label-group");
-      attr(span23, "class", "status-indicator");
+      attr(span24, "class", "btn-label-group");
+      attr(span25, "class", "status-indicator");
       toggle_class(
-        span23,
+        span25,
         "status-active",
         /*$mapStore*/
         ctx[0].transitVisible
       );
-      attr(div12, "class", "btn-top-row");
-      attr(div13, "class", "btn-telemetry");
-      attr(button6, "id", "btn-toggle-transit");
-      attr(button6, "class", "control-btn");
-      button6.disabled = button6_disabled_value = !/*$mapStore*/
+      attr(div13, "class", "btn-top-row");
+      attr(div14, "class", "btn-telemetry");
+      attr(button7, "id", "btn-toggle-transit");
+      attr(button7, "class", "control-btn");
+      button7.disabled = button7_disabled_value = !/*$mapStore*/
       ctx[0].initialized;
-      attr(span26, "class", "btn-label-group");
-      attr(span27, "class", "status-indicator");
+      attr(span28, "class", "btn-label-group");
+      attr(span29, "class", "status-indicator");
       toggle_class(
-        span27,
+        span29,
         "status-active",
         /*$mapStore*/
         ctx[0].peaksVisible
       );
-      attr(div14, "class", "btn-top-row");
-      attr(div15, "class", "btn-telemetry");
-      attr(button7, "id", "btn-toggle-peaks");
-      attr(button7, "class", "control-btn");
-      button7.disabled = button7_disabled_value = !/*$mapStore*/
-      ctx[0].initialized;
-      attr(div16, "class", "section-card");
-      attr(h22, "class", "section-title");
-      attr(span29, "class", "status-indicator");
-      attr(div17, "class", "btn-top-row");
-      attr(button8, "id", "btn-pan-zoom");
+      attr(div15, "class", "btn-top-row");
+      attr(div16, "class", "btn-telemetry");
+      attr(button8, "id", "btn-toggle-peaks");
       attr(button8, "class", "control-btn");
       button8.disabled = button8_disabled_value = !/*$mapStore*/
       ctx[0].initialized;
-      attr(div18, "class", "section-card");
+      attr(div17, "class", "section-card");
+      attr(h22, "class", "section-title");
+      attr(span31, "class", "status-indicator");
+      attr(div18, "class", "btn-top-row");
+      attr(button9, "id", "btn-pan-zoom");
+      attr(button9, "class", "control-btn");
+      button9.disabled = button9_disabled_value = !/*$mapStore*/
+      ctx[0].initialized;
+      attr(div19, "class", "section-card");
       attr(aside, "class", "sidebar");
     },
     m(target, anchor) {
       insert(target, aside, anchor);
       append(aside, div0);
       append(aside, t3);
-      append(aside, div3);
-      append(div3, h20);
-      append(div3, t5);
-      append(div3, button0);
+      append(aside, div4);
+      append(div4, h20);
+      append(div4, t5);
+      append(div4, button0);
       append(button0, div1);
       append(div1, span0);
       append(div1, t7);
       append(div1, span1);
       append(span1, t8);
-      append(div3, t9);
-      append(div3, button1);
-      append(aside, t13);
-      append(aside, div16);
-      append(div16, h21);
-      append(div16, t15);
-      append(div16, button2);
-      append(button2, div4);
-      append(div4, span6);
-      append(div4, t18);
-      append(div4, span7);
-      append(span7, t19);
-      append(button2, t20);
-      append(button2, div5);
-      append(div16, t25);
-      append(div16, button3);
+      append(div4, t9);
+      append(div4, button1);
+      append(button1, div2);
+      append(div2, span2);
+      append(div2, t11);
+      append(div2, span3);
+      append(span3, t12);
+      append(div4, t13);
+      append(div4, button2);
+      append(aside, t17);
+      append(aside, div17);
+      append(div17, h21);
+      append(div17, t19);
+      append(div17, button3);
+      append(button3, div5);
+      append(div5, span8);
+      append(div5, t22);
+      append(div5, span9);
+      append(span9, t23);
+      append(button3, t24);
       append(button3, div6);
-      append(div6, span10);
-      append(div6, t28);
-      append(div6, span11);
-      append(span11, t29);
-      append(button3, t30);
-      append(button3, div7);
-      append(div16, t35);
-      append(div16, button4);
+      append(div17, t29);
+      append(div17, button4);
+      append(button4, div7);
+      append(div7, span12);
+      append(div7, t32);
+      append(div7, span13);
+      append(span13, t33);
+      append(button4, t34);
       append(button4, div8);
-      append(div8, span14);
-      append(div8, t38);
-      append(div8, span15);
-      append(span15, t39);
-      append(button4, t40);
-      append(button4, div9);
-      append(div16, t45);
-      append(div16, button5);
+      append(div17, t39);
+      append(div17, button5);
+      append(button5, div9);
+      append(div9, span16);
+      append(div9, t42);
+      append(div9, span17);
+      append(span17, t43);
+      append(button5, t44);
       append(button5, div10);
-      append(div10, span18);
-      append(div10, t48);
-      append(div10, span19);
-      append(span19, t49);
-      append(button5, t50);
-      append(button5, div11);
-      append(div16, t55);
-      append(div16, button6);
+      append(div17, t49);
+      append(div17, button6);
+      append(button6, div11);
+      append(div11, span20);
+      append(div11, t52);
+      append(div11, span21);
+      append(span21, t53);
+      append(button6, t54);
       append(button6, div12);
-      append(div12, span22);
-      append(div12, t58);
-      append(div12, span23);
-      append(span23, t59);
-      append(button6, t60);
-      append(button6, div13);
-      append(div16, t65);
-      append(div16, button7);
+      append(div17, t59);
+      append(div17, button7);
+      append(button7, div13);
+      append(div13, span24);
+      append(div13, t62);
+      append(div13, span25);
+      append(span25, t63);
+      append(button7, t64);
       append(button7, div14);
-      append(div14, span26);
-      append(div14, t68);
-      append(div14, span27);
-      append(span27, t69);
-      append(button7, t70);
-      append(button7, div15);
-      append(aside, t75);
-      append(aside, div18);
-      append(div18, h22);
-      append(div18, t77);
-      append(div18, button8);
-      append(button8, div17);
-      append(div17, span28);
-      append(div17, t79);
-      append(div17, span29);
-      append(span29, t80);
-      append(span29, t81);
+      append(div17, t69);
+      append(div17, button8);
+      append(button8, div15);
+      append(div15, span28);
+      append(div15, t72);
+      append(div15, span29);
+      append(span29, t73);
+      append(button8, t74);
+      append(button8, div16);
+      append(aside, t79);
+      append(aside, div19);
+      append(div19, h22);
+      append(div19, t81);
+      append(div19, button9);
+      append(button9, div18);
+      append(div18, span30);
+      append(div18, t83);
+      append(div18, span31);
+      append(span31, t84);
+      append(span31, t85);
       if (!mounted) {
         dispose = [
           listen(
@@ -11023,6 +11104,12 @@ function create_fragment$2(ctx) {
             "click",
             /*click_handler_8*/
             ctx[9]
+          ),
+          listen(
+            button9,
+            "click",
+            /*click_handler_9*/
+            ctx[10]
           )
         ];
         mounted = true;
@@ -11031,43 +11118,38 @@ function create_fragment$2(ctx) {
     p(ctx2, [dirty]) {
       if (dirty & /*$mapStore*/
       1 && t8_value !== (t8_value = /*$mapStore*/
-      ctx2[0].initialized ? "READY" : "OFF")) set_data(t8, t8_value);
+      ctx2[0].decompressed ? "READY" : "OFF")) set_data(t8, t8_value);
       if (dirty & /*$mapStore*/
       1) {
         toggle_class(
           span1,
           "status-active",
           /*$mapStore*/
+          ctx2[0].decompressed
+        );
+      }
+      if (dirty & /*$mapStore*/
+      1 && t12_value !== (t12_value = /*$mapStore*/
+      ctx2[0].initialized ? "READY" : "OFF")) set_data(t12, t12_value);
+      if (dirty & /*$mapStore*/
+      1) {
+        toggle_class(
+          span3,
+          "status-active",
+          /*$mapStore*/
           ctx2[0].initialized
         );
       }
       if (dirty & /*$mapStore*/
-      1 && t19_value !== (t19_value = /*$mapStore*/
-      ctx2[0].parksVisible ? "ON" : "OFF")) set_data(t19, t19_value);
+      1 && t23_value !== (t23_value = /*$mapStore*/
+      ctx2[0].parksVisible ? "ON" : "OFF")) set_data(t23, t23_value);
       if (dirty & /*$mapStore*/
       1) {
         toggle_class(
-          span7,
+          span9,
           "status-active",
           /*$mapStore*/
           ctx2[0].parksVisible
-        );
-      }
-      if (dirty & /*$mapStore*/
-      1 && button2_disabled_value !== (button2_disabled_value = !/*$mapStore*/
-      ctx2[0].initialized)) {
-        button2.disabled = button2_disabled_value;
-      }
-      if (dirty & /*$mapStore*/
-      1 && t29_value !== (t29_value = /*$mapStore*/
-      ctx2[0].riversVisible ? "ON" : "OFF")) set_data(t29, t29_value);
-      if (dirty & /*$mapStore*/
-      1) {
-        toggle_class(
-          span11,
-          "status-active",
-          /*$mapStore*/
-          ctx2[0].riversVisible
         );
       }
       if (dirty & /*$mapStore*/
@@ -11076,15 +11158,15 @@ function create_fragment$2(ctx) {
         button3.disabled = button3_disabled_value;
       }
       if (dirty & /*$mapStore*/
-      1 && t39_value !== (t39_value = /*$mapStore*/
-      ctx2[0].buildingsVisible ? "ON" : "OFF")) set_data(t39, t39_value);
+      1 && t33_value !== (t33_value = /*$mapStore*/
+      ctx2[0].riversVisible ? "ON" : "OFF")) set_data(t33, t33_value);
       if (dirty & /*$mapStore*/
       1) {
         toggle_class(
-          span15,
+          span13,
           "status-active",
           /*$mapStore*/
-          ctx2[0].buildingsVisible
+          ctx2[0].riversVisible
         );
       }
       if (dirty & /*$mapStore*/
@@ -11093,15 +11175,15 @@ function create_fragment$2(ctx) {
         button4.disabled = button4_disabled_value;
       }
       if (dirty & /*$mapStore*/
-      1 && t49_value !== (t49_value = /*$mapStore*/
-      ctx2[0].routesVisible ? "ON" : "OFF")) set_data(t49, t49_value);
+      1 && t43_value !== (t43_value = /*$mapStore*/
+      ctx2[0].buildingsVisible ? "ON" : "OFF")) set_data(t43, t43_value);
       if (dirty & /*$mapStore*/
       1) {
         toggle_class(
-          span19,
+          span17,
           "status-active",
           /*$mapStore*/
-          ctx2[0].routesVisible
+          ctx2[0].buildingsVisible
         );
       }
       if (dirty & /*$mapStore*/
@@ -11110,15 +11192,15 @@ function create_fragment$2(ctx) {
         button5.disabled = button5_disabled_value;
       }
       if (dirty & /*$mapStore*/
-      1 && t59_value !== (t59_value = /*$mapStore*/
-      ctx2[0].transitVisible ? "ON" : "OFF")) set_data(t59, t59_value);
+      1 && t53_value !== (t53_value = /*$mapStore*/
+      ctx2[0].routesVisible ? "ON" : "OFF")) set_data(t53, t53_value);
       if (dirty & /*$mapStore*/
       1) {
         toggle_class(
-          span23,
+          span21,
           "status-active",
           /*$mapStore*/
-          ctx2[0].transitVisible
+          ctx2[0].routesVisible
         );
       }
       if (dirty & /*$mapStore*/
@@ -11127,15 +11209,15 @@ function create_fragment$2(ctx) {
         button6.disabled = button6_disabled_value;
       }
       if (dirty & /*$mapStore*/
-      1 && t69_value !== (t69_value = /*$mapStore*/
-      ctx2[0].peaksVisible ? "ON" : "OFF")) set_data(t69, t69_value);
+      1 && t63_value !== (t63_value = /*$mapStore*/
+      ctx2[0].transitVisible ? "ON" : "OFF")) set_data(t63, t63_value);
       if (dirty & /*$mapStore*/
       1) {
         toggle_class(
-          span27,
+          span25,
           "status-active",
           /*$mapStore*/
-          ctx2[0].peaksVisible
+          ctx2[0].transitVisible
         );
       }
       if (dirty & /*$mapStore*/
@@ -11144,12 +11226,29 @@ function create_fragment$2(ctx) {
         button7.disabled = button7_disabled_value;
       }
       if (dirty & /*$mapStore*/
-      1 && t81_value !== (t81_value = /*$mapStore*/
-      ctx2[0].panZoomStep + "")) set_data(t81, t81_value);
+      1 && t73_value !== (t73_value = /*$mapStore*/
+      ctx2[0].peaksVisible ? "ON" : "OFF")) set_data(t73, t73_value);
+      if (dirty & /*$mapStore*/
+      1) {
+        toggle_class(
+          span29,
+          "status-active",
+          /*$mapStore*/
+          ctx2[0].peaksVisible
+        );
+      }
       if (dirty & /*$mapStore*/
       1 && button8_disabled_value !== (button8_disabled_value = !/*$mapStore*/
       ctx2[0].initialized)) {
         button8.disabled = button8_disabled_value;
+      }
+      if (dirty & /*$mapStore*/
+      1 && t85_value !== (t85_value = /*$mapStore*/
+      ctx2[0].panZoomStep + "")) set_data(t85, t85_value);
+      if (dirty & /*$mapStore*/
+      1 && button9_disabled_value !== (button9_disabled_value = !/*$mapStore*/
+      ctx2[0].initialized)) {
+        button9.disabled = button9_disabled_value;
       }
     },
     i: noop,
@@ -11175,15 +11274,16 @@ function formatCount(num) {
 function instance$2($$self, $$props, $$invalidate) {
   let $mapStore;
   component_subscribe($$self, mapStore, ($$value) => $$invalidate(0, $mapStore = $$value));
-  const click_handler = () => benchmarkDriver.initializeMap();
-  const click_handler_1 = () => benchmarkDriver.teardown();
-  const click_handler_2 = () => benchmarkDriver.toggleParks();
-  const click_handler_3 = () => benchmarkDriver.toggleRivers();
-  const click_handler_4 = () => benchmarkDriver.toggleBuildings();
-  const click_handler_5 = () => benchmarkDriver.toggleRoutes();
-  const click_handler_6 = () => benchmarkDriver.toggleTransit();
-  const click_handler_7 = () => benchmarkDriver.togglePeaks();
-  const click_handler_8 = () => benchmarkDriver.nextPanZoomIncrement();
+  const click_handler = () => benchmarkDriver.decompressAndParse();
+  const click_handler_1 = () => benchmarkDriver.initializeMap();
+  const click_handler_2 = () => benchmarkDriver.teardown();
+  const click_handler_3 = () => benchmarkDriver.toggleParks();
+  const click_handler_4 = () => benchmarkDriver.toggleRivers();
+  const click_handler_5 = () => benchmarkDriver.toggleBuildings();
+  const click_handler_6 = () => benchmarkDriver.toggleRoutes();
+  const click_handler_7 = () => benchmarkDriver.toggleTransit();
+  const click_handler_8 = () => benchmarkDriver.togglePeaks();
+  const click_handler_9 = () => benchmarkDriver.nextPanZoomIncrement();
   return [
     $mapStore,
     click_handler,
@@ -11194,7 +11294,8 @@ function instance$2($$self, $$props, $$invalidate) {
     click_handler_5,
     click_handler_6,
     click_handler_7,
-    click_handler_8
+    click_handler_8,
+    click_handler_9
   ];
 }
 class ControlPanel extends SvelteComponent {
@@ -11362,7 +11463,7 @@ function create_fragment(ctx) {
 function instance($$self, $$props, $$invalidate) {
   let isReady = false;
   onMount(async () => {
-    await initializeDatasets();
+    await loadRawBuffers();
     $$invalidate(0, isReady = true);
   });
   return [isReady];

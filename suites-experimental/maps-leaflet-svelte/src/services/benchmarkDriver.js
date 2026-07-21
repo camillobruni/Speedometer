@@ -6,7 +6,9 @@ import {
     createPeakLayerGroup,
     createParkLayerGroup,
     createBuildingLayerGroup,
-    createTransitLayerGroup
+    createTransitLayerGroup,
+    decompressAndParseDatasets,
+    resetParsedDatasets
 } from "./dataLoader.js";
 import { mapStore } from "../stores/mapStore.js";
 
@@ -26,6 +28,21 @@ class BenchmarkDriver {
 
     setContainer(element) {
         this.mapContainer = element;
+    }
+
+    async decompressAndParse() {
+        this.routeGroup = null;
+        this.riverGroup = null;
+        this.peakGroup = null;
+        this.parkGroup = null;
+        this.buildingGroup = null;
+        this.transitGroup = null;
+
+        await decompressAndParseDatasets();
+        mapStore.update(s => ({ ...s, decompressed: true }));
+        if (typeof window !== "undefined")
+            window.dispatchEvent(new CustomEvent("dataset-decompress-complete"));
+        
     }
 
     initializeMap() {
@@ -356,8 +373,10 @@ class BenchmarkDriver {
         this.buildingGroup = null;
         this.transitGroup = null;
         this.currentPanZoomIndex = 0;
+        resetParsedDatasets();
         mapStore.set({
             initialized: false,
+            decompressed: false,
             routesVisible: false,
             riversVisible: false,
             peaksVisible: false,
@@ -380,6 +399,7 @@ export const benchmarkDriver = new BenchmarkDriver();
 
 if (typeof window !== "undefined") {
     window.workload = benchmarkDriver;
+    window.benchmarkDecompressAndParse = () => benchmarkDriver.decompressAndParse();
     window.benchmarkInitializeMap = () => benchmarkDriver.initializeMap();
     window.benchmarkInitTerrain = () => benchmarkDriver.initTerrain();
     window.benchmarkAddOverlays = () => benchmarkDriver.addOverlays();

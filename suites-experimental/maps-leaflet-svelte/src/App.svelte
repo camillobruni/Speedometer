@@ -2,12 +2,12 @@
     import { onMount } from "svelte";
     import ControlPanel from "./components/ControlPanel.svelte";
     import MapView from "./components/MapView.svelte";
-    import { initializeDatasets } from "./services/dataLoader.js";
+    import { loadRawBuffers } from "./services/dataLoader.js";
 
     let isReady = false;
 
     onMount(async () => {
-        await initializeDatasets();
+        await loadRawBuffers();
         isReady = true;
     });
 </script>

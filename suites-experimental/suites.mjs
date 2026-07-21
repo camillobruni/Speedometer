@@ -297,46 +297,55 @@ export const ExperimentalSuites = freezeSuites([
         url: "suites-experimental/maps-leaflet-svelte/dist/index.html",
         resources: "suites-experimental/maps-leaflet-svelte/dist/resources.txt",
         tags: ["experimental", "maps", "leaflet", "svelte", "canvas"],
+        type: "async",
         async prepare(page) {
             await page.waitForElement("#app-ready-indicator");
         },
         tests: [
-            new BenchmarkTestStep("InitializeMapAndTerrain", (page) => {
+            new BenchmarkTestStep("DecompressAndParseDatasets", async (page) => {
+                const decompressPromise = new Promise((resolve) => {
+                    page.addEventListener("dataset-decompress-complete", resolve, { once: true });
+                });
+                page.call("benchmarkDecompressAndParse");
+                await decompressPromise;
+                page.layout();
+            }),
+            new BenchmarkTestStep("InitializeMapAndTerrain", async (page) => {
                 page.call("benchmarkInitTerrain");
                 page.call("benchmarkFlushAsync");
                 page.layout();
             }),
-            new BenchmarkTestStep("AddRoadsAndTransit", (page) => {
+            new BenchmarkTestStep("AddRoadsAndTransit", async (page) => {
                 page.call("benchmarkAddRoadsTransit");
                 page.call("benchmarkFlushAsync");
                 page.layout();
             }),
-            new BenchmarkTestStep("AddBuildingsAndLandmarks", (page) => {
+            new BenchmarkTestStep("AddBuildingsAndLandmarks", async (page) => {
                 page.call("benchmarkAddBuildingsLandmarks");
                 page.call("benchmarkFlushAsync");
                 page.layout();
             }),
-            new BenchmarkTestStep("NavigateGoldenGatePark", (page) => {
+            new BenchmarkTestStep("NavigateGoldenGatePark", async (page) => {
                 page.call("benchmarkNavGoldenGatePark");
                 page.call("benchmarkFlushAsync");
                 page.layout();
             }),
-            new BenchmarkTestStep("NavigateDowntownLiDAR", (page) => {
+            new BenchmarkTestStep("NavigateDowntownLiDAR", async (page) => {
                 page.call("benchmarkNavDowntown");
                 page.call("benchmarkFlushAsync");
                 page.layout();
             }),
-            new BenchmarkTestStep("NavigateMuniCorridors", (page) => {
+            new BenchmarkTestStep("NavigateMuniCorridors", async (page) => {
                 page.call("benchmarkNavMuni");
                 page.call("benchmarkFlushAsync");
                 page.layout();
             }),
-            new BenchmarkTestStep("NavigateTwinPeaksView", (page) => {
+            new BenchmarkTestStep("NavigateTwinPeaksView", async (page) => {
                 page.call("benchmarkNavTwinPeaks");
                 page.call("benchmarkFlushAsync");
                 page.layout();
             }),
-            new BenchmarkTestStep("TeardownAndClean", (page) => {
+            new BenchmarkTestStep("TeardownAndClean", async (page) => {
                 page.call("benchmarkTeardown");
                 page.call("benchmarkFlushAsync");
             }),

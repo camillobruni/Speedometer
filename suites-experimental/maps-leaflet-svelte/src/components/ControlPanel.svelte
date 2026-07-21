@@ -30,6 +30,18 @@
     <div class="section-card">
         <h2 class="section-title">Lifecycle & Init</h2>
         <button
+            id="btn-decompress-data"
+            class="control-btn"
+            on:click={() => benchmarkDriver.decompressAndParse()}
+        >
+            <div class="btn-top-row">
+                <span>Decompress Data</span>
+                <span class="status-indicator" class:status-active={$mapStore.decompressed}>
+                    {$mapStore.decompressed ? "READY" : "OFF"}
+                </span>
+            </div>
+        </button>
+        <button
             id="btn-init-map"
             class="control-btn"
             on:click={() => benchmarkDriver.initializeMap()}

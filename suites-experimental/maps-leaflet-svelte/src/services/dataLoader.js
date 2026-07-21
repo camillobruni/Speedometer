@@ -7,28 +7,14 @@ import parksGzUrl from "../data/parks.json.gz?url";
 import buildingsGzUrl from "../data/buildings.json.gz?url";
 import transitGzUrl from "../data/transit.json.gz?url";
 
-async function fetchAndDecompressJson(url) {
-    const response = await fetch(url);
-    if (!response.ok)
-        throw new Error(`Failed to load dataset: ${url}`);
-    const buffer = await response.arrayBuffer();
-    const bytes = new Uint8Array(buffer);
-    let text;
-    if (bytes[0] === 0x1f && bytes[1] === 0x8b) {
-        const stream = new Blob([buffer]).stream().pipeThrough(new DecompressionStream("gzip"));
-        text = await new Response(stream).text();
-    } else {
-        text = new TextDecoder().decode(buffer);
-    }
-    return JSON.parse(text);
-}
+export let rawBuffers = { routes: null, rivers: null, peaks: null, parks: null, buildings: null, transit: null };
 
-let routesData = [];
-let riversData = [];
-let peaksData = [];
-let parksData = [];
-let buildingsData = [];
-let transitData = [];
+let routesData = null;
+let riversData = null;
+let peaksData = null;
+let parksData = null;
+let buildingsData = null;
+let transitData = null;
 
 function countVertices(coords) {
     if (!Array.isArray(coords))
@@ -59,14 +45,45 @@ export let parksStats = { features: 0, vertices: 0 };
 export let buildingsStats = { features: 0, vertices: 0 };
 export let transitStats = { features: 0, vertices: 0 };
 
-export async function initializeDatasets() {
+export async function loadRawBuffers() {
+    if (rawBuffers.routes && rawBuffers.rivers && rawBuffers.peaks && rawBuffers.parks && rawBuffers.buildings && rawBuffers.transit)
+        return;
+    const fetchBuffer = async (url) => {
+        const response = await fetch(url);
+        if (!response.ok)
+            throw new Error(`Failed to load dataset: ${url}`);
+        return await response.arrayBuffer();
+    };
     const [routes, rivers, peaks, parks, buildings, transit] = await Promise.all([
-        fetchAndDecompressJson(routesGzUrl),
-        fetchAndDecompressJson(riversGzUrl),
-        fetchAndDecompressJson(peaksGzUrl),
-        fetchAndDecompressJson(parksGzUrl),
-        fetchAndDecompressJson(buildingsGzUrl),
-        fetchAndDecompressJson(transitGzUrl)
+        fetchBuffer(routesGzUrl),
+        fetchBuffer(riversGzUrl),
+        fetchBuffer(peaksGzUrl),
+        fetchBuffer(parksGzUrl),
+        fetchBuffer(buildingsGzUrl),
+        fetchBuffer(transitGzUrl)
+    ]);
+    rawBuffers = { routes, rivers, peaks, parks, buildings, transit };
+}
+
+async function decompressAndParseBuffer(buffer) {
+    if (!buffer)
+        return [];
+    const bytes = new Uint8Array(buffer);
+    if (bytes[0] === 0x1f && bytes[1] === 0x8b) {
+        const stream = new Blob([buffer]).stream().pipeThrough(new DecompressionStream("gzip"));
+        return await new Response(stream).json();
+    }
+    return JSON.parse(new TextDecoder().decode(buffer));
+}
+
+export async function decompressAndParseDatasets() {
+    const [routes, rivers, peaks, parks, buildings, transit] = await Promise.all([
+        decompressAndParseBuffer(rawBuffers.routes),
+        decompressAndParseBuffer(rawBuffers.rivers),
+        decompressAndParseBuffer(rawBuffers.peaks),
+        decompressAndParseBuffer(rawBuffers.parks),
+        decompressAndParseBuffer(rawBuffers.buildings),
+        decompressAndParseBuffer(rawBuffers.transit)
     ]);
     routesData = routes;
     riversData = rivers;
@@ -81,6 +98,22 @@ export async function initializeDatasets() {
     parksStats = computeLayerStats(parksData);
     buildingsStats = computeLayerStats(buildingsData);
     transitStats = computeLayerStats(transitData);
+}
+
+export function resetParsedDatasets() {
+    routesData = null;
+    riversData = null;
+    peaksData = null;
+    parksData = null;
+    buildingsData = null;
+    transitData = null;
+
+    routesStats = { features: 0, vertices: 0 };
+    riversStats = { features: 0, vertices: 0 };
+    peaksStats = { features: 0, vertices: 0 };
+    parksStats = { features: 0, vertices: 0 };
+    buildingsStats = { features: 0, vertices: 0 };
+    transitStats = { features: 0, vertices: 0 };
 }
 
 export function getRoutesData() {
@@ -112,7 +145,7 @@ export function createRouteLayerGroup() {
         alley: Object.freeze({ renderer, color: ROAD_STYLES.alley.color, weight: ROAD_STYLES.alley.weight, opacity: ROAD_STYLES.alley.opacity, interactive: false }),
         default: Object.freeze({ renderer, color: ROAD_STYLES.default.color, weight: ROAD_STYLES.default.weight, opacity: ROAD_STYLES.default.opacity, interactive: false })
     });
-    const layers = routesData.map(route => L.polyline(route.coordinates, optionsByClass[route.class] || optionsByClass.default));
+    const layers = (routesData || []).map(route => L.polyline(route.coordinates, optionsByClass[route.class] || optionsByClass.default));
     return L.layerGroup(layers);
 }
 
@@ -133,7 +166,7 @@ export function createRiverLayerGroup() {
         opacity: 0.8,
         interactive: false
     });
-    const layers = riversData.map(feature => {
+    const layers = (riversData || []).map(feature => {
         if (feature.type === "polygon")
             return L.polygon(feature.coordinates, polygonOptions);
         else
@@ -158,7 +191,7 @@ export function createPeakLayerGroup() {
         permanent: false,
         direction: "top"
     });
-    const layers = peaksData.map(peak => {
+    const layers = (peaksData || []).map(peak => {
         const marker = L.circleMarker(peak.coordinates, markerOptions);
         marker.bindTooltip(`${peak.name} (${peak.elevation}m)`, tooltipOptions);
         return marker;
@@ -176,7 +209,7 @@ export function createParkLayerGroup() {
         weight: 1.5,
         interactive: false
     });
-    const layers = parksData.map(park => {
+    const layers = (parksData || []).map(park => {
         return park.type === "polygon" ? L.polygon(park.coordinates, options) : L.polyline(park.coordinates, options);
     });
     return L.layerGroup(layers);
@@ -201,7 +234,7 @@ export function createBuildingLayerGroup() {
         interactive: false
     }));
 
-    const layers = buildingsData.map(building => {
+    const layers = (buildingsData || []).map(building => {
         const height = Number(building.hgt_median_m || 15);
         const bucketIdx = Math.min(19, Math.max(0, Math.floor(((height - 10) / 190) * 20)));
         const options = height > 60 ? tallBuckets[bucketIdx] : normalBuckets[bucketIdx];
@@ -220,7 +253,7 @@ export function createTransitLayerGroup() {
         dashArray: "5, 5",
         interactive: false
     });
-    const layers = transitData.map(line => {
+    const layers = (transitData || []).map(line => {
         return line.type === "polygon" ? L.polygon(line.coordinates, options) : L.polyline(line.coordinates, options);
     });
     return L.layerGroup(layers);
