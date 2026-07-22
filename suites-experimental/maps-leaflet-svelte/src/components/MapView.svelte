@@ -5,6 +5,9 @@
     let container;
 
     onMount(() => {
+        if (!container) {
+            throw new Error("Fatal: Container DOM element not bound in MapView onMount.");
+        }
         benchmarkDriver.setContainer(container);
         benchmarkDriver.initializeMap();
     });

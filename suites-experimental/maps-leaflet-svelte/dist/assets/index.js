@@ -9983,61 +9983,65 @@ const TopographicTileLayer = L$1.GridLayer.extend({
     L$1.GridLayer.prototype.initialize.call(this, options);
     this.on("tileunload", this._onTileUnload, this);
   },
-  _onTileUnload: function(e) {
-    const tile = e.tile;
-    if (tile && tile.nodeName === "CANVAS") {
-      tile.width = 1;
-      tile.height = 1;
-      canvasPool.push(tile);
+  _onTileUnload: function(unloadEvent) {
+    const tile = unloadEvent.tile;
+    if (!tile || tile.nodeName !== "CANVAS") {
+      throw new Error("Fatal: Tile unload targeted a non-canvas element.");
     }
+    tile.width = 1;
+    tile.height = 1;
+    canvasPool.push(tile);
   },
-  _getPooledCanvas: function(size) {
+  _getPooledCanvas: function(tileDimensions) {
     let canvas = canvasPool.pop();
     if (!canvas)
       canvas = document.createElement("canvas");
-    canvas.width = size.x;
-    canvas.height = size.y;
+    canvas.width = tileDimensions.x;
+    canvas.height = tileDimensions.y;
     return canvas;
   },
-  createTile: function(coords, done) {
-    const size = this.getTileSize();
-    const canvas = this._getPooledCanvas(size);
-    const ctx = canvas.getContext("2d");
-    this._renderTopography(ctx, coords, size.x, size.y);
+  createTile: function(tileCoordinates, done) {
+    const tileDimensions = this.getTileSize();
+    const canvas = this._getPooledCanvas(tileDimensions);
+    const renderingContext = canvas.getContext("2d");
+    if (!renderingContext) {
+      throw new Error("Fatal: Failed to get 2d context for topographic tile canvas.");
+    }
+    this._renderTopography(renderingContext, tileCoordinates, tileDimensions.x, tileDimensions.y);
     done(null, canvas);
     return canvas;
   },
-  _renderTopography: function(ctx, coords, width, height) {
-    ctx.fillStyle = THEME_COLORS.terrain;
-    ctx.fillRect(0, 0, width, height);
-    ctx.strokeStyle = "#242a38";
-    ctx.lineWidth = 1;
-    const step = 64;
-    ctx.beginPath();
-    for (let x = step; x < width; x += step) {
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, height);
+  _renderTopography: function(renderingContext, tileCoordinates, tileWidth, tileHeight) {
+    renderingContext.fillStyle = THEME_COLORS.terrain;
+    renderingContext.fillRect(0, 0, tileWidth, tileHeight);
+    renderingContext.strokeStyle = "#242a38";
+    renderingContext.lineWidth = 1;
+    const gridStepSize = 64;
+    renderingContext.beginPath();
+    for (let x = gridStepSize; x < tileWidth; x += gridStepSize) {
+      renderingContext.moveTo(x, 0);
+      renderingContext.lineTo(x, tileHeight);
     }
-    for (let y = step; y < height; y += step) {
-      ctx.moveTo(0, y);
-      ctx.lineTo(width, y);
+    for (let y = gridStepSize; y < tileHeight; y += gridStepSize) {
+      renderingContext.moveTo(0, y);
+      renderingContext.lineTo(tileWidth, y);
     }
-    ctx.stroke();
-    const hash = Math.sin(coords.x * 12.9898 + coords.y * 78.233 + coords.z * 43.123) * 43758.5453;
-    const numContours = Math.floor(Math.abs(hash) % 3) + 1;
-    ctx.strokeStyle = "#2c3447";
-    ctx.lineWidth = 1.5;
+    renderingContext.stroke();
+    const contourHash = Math.sin(tileCoordinates.x * 12.9898 + tileCoordinates.y * 78.233 + tileCoordinates.z * 43.123) * 43758.5453;
+    const numContours = Math.floor(Math.abs(contourHash) % 3) + 1;
+    renderingContext.strokeStyle = "#2c3447";
+    renderingContext.lineWidth = 1.5;
     for (let i = 1; i <= numContours; i++) {
-      const radius = Math.abs(Math.sin(hash + i)) * 60 + 20;
-      const centerX = Math.abs(Math.cos(hash * i)) * (width - 60) + 30;
-      const centerY = Math.abs(Math.sin(hash / i)) * (height - 60) + 30;
-      ctx.beginPath();
-      ctx.ellipse(centerX, centerY, radius, radius * 0.7, hash, 0, Math.PI * 2);
-      ctx.stroke();
+      const radius = Math.abs(Math.sin(contourHash + i)) * 60 + 20;
+      const centerX = Math.abs(Math.cos(contourHash * i)) * (tileWidth - 60) + 30;
+      const centerY = Math.abs(Math.sin(contourHash / i)) * (tileHeight - 60) + 30;
+      renderingContext.beginPath();
+      renderingContext.ellipse(centerX, centerY, radius, radius * 0.7, contourHash, 0, Math.PI * 2);
+      renderingContext.stroke();
     }
-    ctx.fillStyle = "#4a5568";
-    ctx.font = "10px sans-serif";
-    ctx.fillText(`z${coords.z} / ${coords.x} / ${coords.y}`, 8, 16);
+    renderingContext.fillStyle = "#4a5568";
+    renderingContext.font = "10px sans-serif";
+    renderingContext.fillText(`z${tileCoordinates.z} / ${tileCoordinates.x} / ${tileCoordinates.y}`, 8, 16);
   }
 });
 function topographicTileLayer(options) {
@@ -10065,19 +10069,53 @@ function getSharedRenderer() {
 function resetSharedRenderer() {
   sharedRenderer = null;
 }
+function assertValidDataset(dataset, datasetName) {
+  if (!Array.isArray(dataset) || dataset.length === 0) {
+    throw new Error(`Fatal: Dataset ${datasetName} is invalid or empty.`);
+  }
+}
+class VectorLayerBatchBuilder {
+  constructor(dataset) {
+    this.polygons = [];
+    this.polylines = [];
+    this._bucketCoordinates(dataset);
+  }
+  _bucketCoordinates(dataset) {
+    for (let featureIndex = 0; featureIndex < dataset.length; featureIndex++) {
+      const feature = dataset[featureIndex];
+      if (feature.type === "polygon") {
+        this.polygons.push(feature.coordinates);
+      } else {
+        this.polylines.push(feature.coordinates);
+      }
+    }
+  }
+  buildLayers(polygonOptions, polylineOptions = polygonOptions) {
+    const layers = [];
+    if (this.polygons.length > 0)
+      layers.push(L$1.polygon(this.polygons, polygonOptions));
+    if (this.polylines.length > 0)
+      layers.push(L$1.polyline(this.polylines, polylineOptions));
+    return layers;
+  }
+}
 function countVertices(coords) {
   if (!Array.isArray(coords))
     return 0;
   if (coords.length >= 2 && typeof coords[0] === "number" && typeof coords[1] === "number")
     return 1;
-  return coords.reduce((sum, item) => sum + countVertices(item), 0);
+  let totalVertices = 0;
+  for (let coordinateIndex = 0; coordinateIndex < coords.length; coordinateIndex++) {
+    totalVertices += countVertices(coords[coordinateIndex]);
+  }
+  return totalVertices;
 }
 function computeLayerStats(data) {
-  if (!Array.isArray(data))
-    return { features: 0, vertices: 0 };
+  assertValidDataset(data, "computeLayerStats input");
   let vertices = 0;
-  for (const item of data)
-    vertices += countVertices(item.coordinates);
+  for (let featureIndex = 0; featureIndex < data.length; featureIndex++) {
+    vertices += countVertices(data[featureIndex].coordinates);
+  }
   return {
     features: data.length,
     vertices
@@ -10102,9 +10140,9 @@ async function loadRawBuffers() {
   ]);
   rawBuffers = { routes, rivers, peaks, parks, buildings, transit };
 }
-async function decompressAndParseBuffer(buffer) {
+async function decompressAndParseBuffer(buffer, datasetName) {
   if (!buffer)
-    return [];
+    throw new Error(`Fatal: Raw buffer for ${datasetName} is missing or empty.`);
   const bytes = new Uint8Array(buffer);
   if (bytes[0] === 31 && bytes[1] === 139) {
     const stream = new Blob([buffer]).stream().pipeThrough(new DecompressionStream("gzip"));
@@ -10114,13 +10152,19 @@ async function decompressAndParseBuffer(buffer) {
 }
 async function decompressAndParseDatasets() {
   const [routes, rivers, peaks, parks, buildings, transit] = await Promise.all([
-    decompressAndParseBuffer(rawBuffers.routes),
-    decompressAndParseBuffer(rawBuffers.rivers),
-    decompressAndParseBuffer(rawBuffers.peaks),
-    decompressAndParseBuffer(rawBuffers.parks),
-    decompressAndParseBuffer(rawBuffers.buildings),
-    decompressAndParseBuffer(rawBuffers.transit)
+    decompressAndParseBuffer(rawBuffers.routes, "routes"),
+    decompressAndParseBuffer(rawBuffers.rivers, "rivers"),
+    decompressAndParseBuffer(rawBuffers.peaks, "peaks"),
+    decompressAndParseBuffer(rawBuffers.parks, "parks"),
+    decompressAndParseBuffer(rawBuffers.buildings, "buildings"),
+    decompressAndParseBuffer(rawBuffers.transit, "transit")
   ]);
+  assertValidDataset(routes, "routes");
+  assertValidDataset(rivers, "rivers");
+  assertValidDataset(peaks, "peaks");
+  assertValidDataset(parks, "parks");
+  assertValidDataset(buildings, "buildings");
+  assertValidDataset(transit, "transit");
   routesData = routes;
   riversData = rivers;
   peaksData = peaks;
@@ -10141,6 +10185,7 @@ function resetParsedDatasets() {
   riversData = null;
   peaksData = null;
   parksData = null;
+  buildingsData = null;
   transitData = null;
   resetSharedRenderer();
   layerStats.set({
@@ -10153,6 +10198,7 @@ function resetParsedDatasets() {
   });
 }
 function createRouteLayerGroup() {
+  assertValidDataset(routesData, "routes");
   const renderer = getSharedRenderer();
   const optionsByClass = Object.freeze({
     highway: Object.freeze({ renderer, color: ROAD_STYLES.highway.color, weight: ROAD_STYLES.highway.weight, opacity: ROAD_STYLES.highway.opacity, interactive: false, smoothFactor: 2 }),
@@ -10162,7 +10208,7 @@ function createRouteLayerGroup() {
     alley: Object.freeze({ renderer, color: ROAD_STYLES.alley.color, weight: ROAD_STYLES.alley.weight, opacity: ROAD_STYLES.alley.opacity, interactive: false, smoothFactor: 2 }),
     default: Object.freeze({ renderer, color: ROAD_STYLES.default.color, weight: ROAD_STYLES.default.weight, opacity: ROAD_STYLES.default.opacity, interactive: false, smoothFactor: 2 })
   });
-  const coordsByClass = {
+  const coordinatesByRoadClass = {
     highway: [],
     arterial: [],
     collector: [],
@@ -10170,19 +10216,21 @@ function createRouteLayerGroup() {
     alley: [],
     default: []
   };
-  for (const route of routesData || []) {
-    const cls = Object.prototype.hasOwnProperty.call(coordsByClass, route.class) ? route.class : "default";
-    coordsByClass[cls].push(route.coordinates);
+  for (let routeIndex = 0; routeIndex < routesData.length; routeIndex++) {
+    const route = routesData[routeIndex];
+    const roadClass = Object.prototype.hasOwnProperty.call(coordinatesByRoadClass, route.class) ? route.class : "default";
+    coordinatesByRoadClass[roadClass].push(route.coordinates);
   }
   const layers = [];
-  for (const [cls, coords] of Object.entries(coordsByClass)) {
+  for (const [roadClass, coords] of Object.entries(coordinatesByRoadClass)) {
     if (coords.length > 0) {
-      layers.push(L$1.polyline(coords, optionsByClass[cls]));
+      layers.push(L$1.polyline(coords, optionsByClass[roadClass]));
     }
   }
   return L$1.layerGroup(layers);
 }
 function createRiverLayerGroup() {
+  assertValidDataset(riversData, "rivers");
   const renderer = getSharedRenderer();
   const polygonOptions = Object.freeze({
     renderer,
@@ -10201,22 +10249,11 @@ function createRiverLayerGroup() {
     interactive: false,
     smoothFactor: 2
   });
-  const polygons = [];
-  const polylines = [];
-  for (const feature of riversData || []) {
-    if (feature.type === "polygon")
-      polygons.push(feature.coordinates);
-    else
-      polylines.push(feature.coordinates);
-  }
-  const layers = [];
-  if (polygons.length > 0)
-    layers.push(L$1.polygon(polygons, polygonOptions));
-  if (polylines.length > 0)
-    layers.push(L$1.polyline(polylines, polylineOptions));
-  return L$1.layerGroup(layers);
+  const batchBuilder = new VectorLayerBatchBuilder(riversData);
+  return L$1.layerGroup(batchBuilder.buildLayers(polygonOptions, polylineOptions));
 }
 function createPeakLayerGroup() {
+  assertValidDataset(peaksData, "peaks");
   const renderer = getSharedRenderer();
   const markerOptions = Object.freeze({
     renderer,
@@ -10231,14 +10268,17 @@ function createPeakLayerGroup() {
     permanent: false,
     direction: "top"
   });
-  const layers = (peaksData || []).map((peak) => {
+  const layers = [];
+  for (let peakIndex = 0; peakIndex < peaksData.length; peakIndex++) {
+    const peak = peaksData[peakIndex];
     const marker = L$1.circleMarker(peak.coordinates, markerOptions);
     marker.bindTooltip(`${peak.name} (${peak.elevation}m)`, tooltipOptions);
-    return marker;
-  });
+    layers.push(marker);
+  }
   return L$1.layerGroup(layers);
 }
 function createParkLayerGroup() {
+  assertValidDataset(parksData, "parks");
   const renderer = getSharedRenderer();
   const options = Object.freeze({
     renderer,
@@ -10249,47 +10289,43 @@ function createParkLayerGroup() {
     interactive: false,
     smoothFactor: 2
   });
-  const polygons = [];
-  const polylines = [];
-  for (const park of parksData || []) {
-    if (park.type === "polygon")
-      polygons.push(park.coordinates);
-    else
-      polylines.push(park.coordinates);
-  }
-  const layers = [];
-  if (polygons.length > 0)
-    layers.push(L$1.polygon(polygons, options));
-  if (polylines.length > 0)
-    layers.push(L$1.polyline(polylines, options));
-  return L$1.layerGroup(layers);
+  const batchBuilder = new VectorLayerBatchBuilder(parksData);
+  return L$1.layerGroup(batchBuilder.buildLayers(options));
 }
 function createBuildingLayerGroup() {
+  assertValidDataset(buildingsData, "buildings");
   const renderer = getSharedRenderer();
-  const normalBuckets = Array.from({ length: 20 }, (_, i) => Object.freeze({
+  const normalBuckets = Array.from({ length: 20 }, (unusedItem, opacityBucketIndex) => Object.freeze({
     renderer,
     color: THEME_COLORS.border,
     fillColor: THEME_COLORS.building,
-    fillOpacity: Math.round((0.2 + i / 19 * 0.75) * 100) / 100,
+    fillOpacity: Math.round((0.2 + opacityBucketIndex / 19 * 0.75) * 100) / 100,
     weight: 1,
     interactive: false,
     smoothFactor: 2
   }));
-  const tallBuckets = Array.from({ length: 20 }, (_, i) => Object.freeze({
+  const tallBuckets = Array.from({ length: 20 }, (unusedItem, opacityBucketIndex) => Object.freeze({
     renderer,
     color: THEME_COLORS.border,
     fillColor: THEME_COLORS.buildingTall,
-    fillOpacity: Math.round((0.2 + i / 19 * 0.75) * 100) / 100,
+    fillOpacity: Math.round((0.2 + opacityBucketIndex / 19 * 0.75) * 100) / 100,
     weight: 1,
     interactive: false,
     smoothFactor: 2
   }));
   const normalPolys = Array.from({ length: 20 }, () => ({ polygons: [], polylines: [] }));
   const tallPolys = Array.from({ length: 20 }, () => ({ polygons: [], polylines: [] }));
-  for (const building of buildingsData || []) {
-    const height = Number(building.hgt_median_m || 15);
-    const bucketIdx = Math.min(19, Math.max(0, Math.floor((height - 10) / 190 * 20)));
-    const target = height > 60 ? tallPolys[bucketIdx] : normalPolys[bucketIdx];
+  for (let buildingIndex = 0; buildingIndex < buildingsData.length; buildingIndex++) {
+    const building = buildingsData[buildingIndex];
+    if (building.hgt_median_m === void 0 || building.hgt_median_m === null || building.hgt_median_m === "") {
+      throw new Error("Fatal: Building is missing hgt_median_m attribute.");
+    }
+    const height = Number(building.hgt_median_m);
+    if (isNaN(height)) {
+      throw new Error("Fatal: Building hgt_median_m attribute is not a valid number.");
+    }
+    const targetBucketIndex = Math.min(19, Math.max(0, Math.floor((height - 10) / 190 * 20)));
+    const target = height > 60 ? tallPolys[targetBucketIndex] : normalPolys[targetBucketIndex];
     if (building.type === "polygon") {
       target.polygons.push(building.coordinates);
     } else {
@@ -10297,19 +10333,20 @@ function createBuildingLayerGroup() {
     }
   }
   const layers = [];
-  for (let i = 0; i < 20; i++) {
-    if (normalPolys[i].polygons.length > 0)
-      layers.push(L$1.polygon(normalPolys[i].polygons, normalBuckets[i]));
-    if (normalPolys[i].polylines.length > 0)
-      layers.push(L$1.polyline(normalPolys[i].polylines, normalBuckets[i]));
-    if (tallPolys[i].polygons.length > 0)
-      layers.push(L$1.polygon(tallPolys[i].polygons, tallBuckets[i]));
-    if (tallPolys[i].polylines.length > 0)
-      layers.push(L$1.polyline(tallPolys[i].polylines, tallBuckets[i]));
+  for (let opacityBucketIndex = 0; opacityBucketIndex < 20; opacityBucketIndex++) {
+    if (normalPolys[opacityBucketIndex].polygons.length > 0)
+      layers.push(L$1.polygon(normalPolys[opacityBucketIndex].polygons, normalBuckets[opacityBucketIndex]));
+    if (normalPolys[opacityBucketIndex].polylines.length > 0)
+      layers.push(L$1.polyline(normalPolys[opacityBucketIndex].polylines, normalBuckets[opacityBucketIndex]));
+    if (tallPolys[opacityBucketIndex].polygons.length > 0)
+      layers.push(L$1.polygon(tallPolys[opacityBucketIndex].polygons, tallBuckets[opacityBucketIndex]));
+    if (tallPolys[opacityBucketIndex].polylines.length > 0)
+      layers.push(L$1.polyline(tallPolys[opacityBucketIndex].polylines, tallBuckets[opacityBucketIndex]));
   }
   return L$1.layerGroup(layers);
 }
 function createTransitLayerGroup() {
+  assertValidDataset(transitData, "transit");
   const renderer = getSharedRenderer();
   const options = Object.freeze({
     renderer,
@@ -10320,77 +10357,184 @@ function createTransitLayerGroup() {
     interactive: false,
     smoothFactor: 2
   });
-  const polygons = [];
-  const polylines = [];
-  for (const line of transitData || []) {
-    if (line.type === "polygon")
-      polygons.push(line.coordinates);
-    else
-      polylines.push(line.coordinates);
+  const batchBuilder = new VectorLayerBatchBuilder(transitData);
+  return L$1.layerGroup(batchBuilder.buildLayers(options));
+}
+class CanvasRasterizationVerifier {
+  static verify(canvases, assertNonEmpty = true) {
+    if (!canvases || canvases.length === 0) {
+      throw new Error("Fatal: No canvases found during rasterization verification.");
+    }
+    let checksum = 0;
+    let hasNonZeroAlpha = false;
+    for (let canvasIndex = 0; canvasIndex < canvases.length; canvasIndex++) {
+      const canvas = canvases[canvasIndex];
+      const canvasWidth = canvas.width;
+      const canvasHeight = canvas.height;
+      if (canvasWidth <= 0 || canvasHeight <= 0) {
+        throw new Error("Fatal: Canvas has invalid dimensions during verification.");
+      }
+      const renderingContext = canvas.getContext("2d");
+      if (!renderingContext) {
+        throw new Error("Fatal: Canvas missing 2d context during verification.");
+      }
+      const sampleBoxes = [
+        [0, 0],
+        [Math.max(0, canvasWidth - 4), 0],
+        [0, Math.max(0, canvasHeight - 4)],
+        [Math.max(0, canvasWidth - 4), Math.max(0, canvasHeight - 4)],
+        [Math.floor(Math.max(0, canvasWidth - 4) / 2), Math.floor(Math.max(0, canvasHeight - 4) / 2)]
+      ];
+      for (let boxIndex = 0; boxIndex < sampleBoxes.length; boxIndex++) {
+        const [sampleX, sampleY] = sampleBoxes[boxIndex];
+        const sampleWidth = Math.min(4, canvasWidth - sampleX);
+        const sampleHeight = Math.min(4, canvasHeight - sampleY);
+        if (sampleWidth <= 0 || sampleHeight <= 0) {
+          throw new Error("Fatal: Invalid sample box dimensions during verification.");
+        }
+        const imageData = renderingContext.getImageData(sampleX, sampleY, sampleWidth, sampleHeight);
+        const data = imageData.data;
+        for (let pixelIndex = 0; pixelIndex < data.length; pixelIndex += 4) {
+          const redChannel = data[pixelIndex];
+          const greenChannel = data[pixelIndex + 1];
+          const blueChannel = data[pixelIndex + 2];
+          const alphaChannel = data[pixelIndex + 3];
+          if (alphaChannel > 0) {
+            hasNonZeroAlpha = true;
+          }
+          checksum = (checksum << 5) - checksum + redChannel + (greenChannel << 1) + blueChannel + (alphaChannel << 2) | 0;
+        }
+      }
+    }
+    if (assertNonEmpty && !hasNonZeroAlpha) {
+      throw new Error("Fatal: Canvas rasterization verification failed: all sampled pixels evaluate to zero alpha (empty render).");
+    }
+    return checksum;
   }
-  const layers = [];
-  if (polygons.length > 0)
-    layers.push(L$1.polygon(polygons, options));
-  if (polylines.length > 0)
-    layers.push(L$1.polyline(polylines, options));
-  return L$1.layerGroup(layers);
+}
+class LayerGroupManager {
+  constructor() {
+    this.groups = {
+      route: null,
+      river: null,
+      peak: null,
+      park: null,
+      building: null,
+      transit: null
+    };
+    this.creators = {
+      route: createRouteLayerGroup,
+      river: createRiverLayerGroup,
+      peak: createPeakLayerGroup,
+      park: createParkLayerGroup,
+      building: createBuildingLayerGroup,
+      transit: createTransitLayerGroup
+    };
+    this.storeKeys = {
+      route: "routesVisible",
+      river: "riversVisible",
+      peak: "peaksVisible",
+      park: "parksVisible",
+      building: "buildingsVisible",
+      transit: "transitVisible"
+    };
+    this.orderedKeys = ["route", "river", "peak", "park", "building", "transit"];
+  }
+  reset() {
+    for (let index = 0; index < this.orderedKeys.length; index++) {
+      const key = this.orderedKeys[index];
+      this.groups[key] = null;
+    }
+  }
+  removeAll(map) {
+    if (map) {
+      for (let index = 0; index < this.orderedKeys.length; index++) {
+        const key = this.orderedKeys[index];
+        const layerGroup = this.groups[key];
+        if (layerGroup && map.hasLayer(layerGroup)) {
+          map.removeLayer(layerGroup);
+        }
+      }
+    }
+    this.reset();
+  }
+  ensure(layerName, map) {
+    if (!this.groups[layerName]) {
+      this.groups[layerName] = this.creators[layerName]();
+    }
+    const layerGroup = this.groups[layerName];
+    if (!map.hasLayer(layerGroup)) {
+      layerGroup.addTo(map);
+    }
+    return layerGroup;
+  }
+  remove(layerName, map) {
+    const layerGroup = this.groups[layerName];
+    if (layerGroup && map.hasLayer(layerGroup)) {
+      map.removeLayer(layerGroup);
+    }
+  }
+  toggle(layerName, map) {
+    if (!this.groups[layerName]) {
+      this.groups[layerName] = this.creators[layerName]();
+    }
+    const layerGroup = this.groups[layerName];
+    const storeKey = this.storeKeys[layerName];
+    if (map.hasLayer(layerGroup)) {
+      map.removeLayer(layerGroup);
+      mapStore.update((currentMapState) => ({ ...currentMapState, [storeKey]: false }));
+    } else {
+      layerGroup.addTo(map);
+      mapStore.update((currentMapState) => ({ ...currentMapState, [storeKey]: true }));
+    }
+  }
 }
 class BenchmarkDriver {
   constructor() {
     this.mapContainer = null;
     this.map = null;
     this.topographicLayer = null;
-    this.routeGroup = null;
-    this.riverGroup = null;
-    this.peakGroup = null;
-    this.parkGroup = null;
-    this.buildingGroup = null;
-    this.transitGroup = null;
+    this.layerManager = new LayerGroupManager();
     this.currentPanZoomIndex = 0;
+  }
+  get routeGroup() {
+    return this.layerManager.groups.route;
+  }
+  get riverGroup() {
+    return this.layerManager.groups.river;
+  }
+  get peakGroup() {
+    return this.layerManager.groups.peak;
+  }
+  get parkGroup() {
+    return this.layerManager.groups.park;
+  }
+  get buildingGroup() {
+    return this.layerManager.groups.building;
+  }
+  get transitGroup() {
+    return this.layerManager.groups.transit;
   }
   setContainer(element2) {
     this.mapContainer = element2;
   }
   async decompressAndParse() {
-    this.routeGroup = null;
-    this.riverGroup = null;
-    this.peakGroup = null;
-    this.parkGroup = null;
-    this.buildingGroup = null;
-    this.transitGroup = null;
+    this.layerManager.reset();
     await decompressAndParseDatasets();
-    mapStore.update((s) => ({ ...s, decompressed: true }));
+    mapStore.update((currentMapState) => ({ ...currentMapState, decompressed: true }));
     if (typeof window !== "undefined")
       window.dispatchEvent(new CustomEvent("dataset-decompress-complete"));
   }
   initializeMap() {
     if (!this.mapContainer) {
-      console.error("Map container not registered with BenchmarkDriver.");
-      return;
+      throw new Error("Fatal: Map container not registered with BenchmarkDriver.");
     }
     if (this.map) {
-      if (this.routeGroup && this.map.hasLayer(this.routeGroup))
-        this.map.removeLayer(this.routeGroup);
-      if (this.riverGroup && this.map.hasLayer(this.riverGroup))
-        this.map.removeLayer(this.riverGroup);
-      if (this.peakGroup && this.map.hasLayer(this.peakGroup))
-        this.map.removeLayer(this.peakGroup);
-      if (this.parkGroup && this.map.hasLayer(this.parkGroup))
-        this.map.removeLayer(this.parkGroup);
-      if (this.buildingGroup && this.map.hasLayer(this.buildingGroup))
-        this.map.removeLayer(this.buildingGroup);
-      if (this.transitGroup && this.map.hasLayer(this.transitGroup))
-        this.map.removeLayer(this.transitGroup);
+      this.layerManager.removeAll(this.map);
       this.map.remove();
       this.map = null;
       resetSharedRenderer();
       this.topographicLayer = null;
-      this.routeGroup = null;
-      this.riverGroup = null;
-      this.peakGroup = null;
-      this.parkGroup = null;
-      this.buildingGroup = null;
-      this.transitGroup = null;
     }
     this.map = L$1.map(this.mapContainer, {
       center: [37.7749, -122.4194],
@@ -10411,22 +10555,15 @@ class BenchmarkDriver {
       noWrap: true
     }).addTo(this.map);
     this.currentPanZoomIndex = 0;
-    mapStore.update((s) => ({ ...s, initialized: true, panZoomStep: 0, activeStep: 0 }));
+    mapStore.update((currentMapState) => ({ ...currentMapState, initialized: true, panZoomStep: 0, activeStep: 0 }));
   }
   initTerrain() {
-    this.initializeMap();
     if (!this.map)
-      return;
-    if (!this.parkGroup)
-      this.parkGroup = createParkLayerGroup();
-    if (!this.map.hasLayer(this.parkGroup))
-      this.parkGroup.addTo(this.map);
-    if (!this.riverGroup)
-      this.riverGroup = createRiverLayerGroup();
-    if (!this.map.hasLayer(this.riverGroup))
-      this.riverGroup.addTo(this.map);
-    mapStore.update((s) => ({
-      ...s,
+      throw new Error("Fatal: Map uninitialized during initTerrain.");
+    this.layerManager.ensure("park", this.map);
+    this.layerManager.ensure("river", this.map);
+    mapStore.update((currentMapState) => ({
+      ...currentMapState,
       initialized: true,
       parksVisible: true,
       riversVisible: true,
@@ -10436,17 +10573,11 @@ class BenchmarkDriver {
   }
   addRoadsTransit() {
     if (!this.map)
-      return;
-    if (!this.routeGroup)
-      this.routeGroup = createRouteLayerGroup();
-    if (!this.map.hasLayer(this.routeGroup))
-      this.routeGroup.addTo(this.map);
-    if (!this.transitGroup)
-      this.transitGroup = createTransitLayerGroup();
-    if (!this.map.hasLayer(this.transitGroup))
-      this.transitGroup.addTo(this.map);
-    mapStore.update((s) => ({
-      ...s,
+      throw new Error("Fatal: Map uninitialized during addRoadsTransit.");
+    this.layerManager.ensure("route", this.map);
+    this.layerManager.ensure("transit", this.map);
+    mapStore.update((currentMapState) => ({
+      ...currentMapState,
       routesVisible: true,
       transitVisible: true,
       panZoomStep: 2,
@@ -10455,17 +10586,11 @@ class BenchmarkDriver {
   }
   addBuildingsLandmarks() {
     if (!this.map)
-      return;
-    if (!this.buildingGroup)
-      this.buildingGroup = createBuildingLayerGroup();
-    if (!this.map.hasLayer(this.buildingGroup))
-      this.buildingGroup.addTo(this.map);
-    if (!this.peakGroup)
-      this.peakGroup = createPeakLayerGroup();
-    if (!this.map.hasLayer(this.peakGroup))
-      this.peakGroup.addTo(this.map);
-    mapStore.update((s) => ({
-      ...s,
+      throw new Error("Fatal: Map uninitialized during addBuildingsLandmarks.");
+    this.layerManager.ensure("building", this.map);
+    this.layerManager.ensure("peak", this.map);
+    mapStore.update((currentMapState) => ({
+      ...currentMapState,
       buildingsVisible: true,
       peaksVisible: true,
       panZoomStep: 3,
@@ -10474,68 +10599,45 @@ class BenchmarkDriver {
   }
   navGoldenGatePark() {
     if (!this.map)
-      return;
+      throw new Error("Fatal: Map uninitialized during navGoldenGatePark.");
     this.map.setView([37.7694, -122.4862], 14, { animate: false });
     this.currentPanZoomIndex = 1;
-    mapStore.update((s) => ({ ...s, panZoomStep: 4, activeStep: 4 }));
+    mapStore.update((currentMapState) => ({ ...currentMapState, panZoomStep: 4, activeStep: 4 }));
   }
   navDowntown() {
     if (!this.map)
-      return;
+      throw new Error("Fatal: Map uninitialized during navDowntown.");
     this.map.setView([37.7915, -122.399], 16.5, { animate: false });
     this.currentPanZoomIndex = 2;
-    mapStore.update((s) => ({ ...s, panZoomStep: 5, activeStep: 5 }));
+    mapStore.update((currentMapState) => ({ ...currentMapState, panZoomStep: 5, activeStep: 5 }));
   }
   navMuni() {
     if (!this.map)
-      return;
-    if (this.buildingGroup && this.map.hasLayer(this.buildingGroup)) {
-      this.map.removeLayer(this.buildingGroup);
-    }
+      throw new Error("Fatal: Map uninitialized during navMuni.");
+    this.layerManager.remove("building", this.map);
     this.map.setView([37.7675, -122.428], 13.5, { animate: false });
     this.currentPanZoomIndex = 3;
-    mapStore.update((s) => ({ ...s, buildingsVisible: false, panZoomStep: 6, activeStep: 6 }));
+    mapStore.update((currentMapState) => ({ ...currentMapState, buildingsVisible: false, panZoomStep: 6, activeStep: 6 }));
   }
   navTwinPeaks() {
     if (!this.map)
-      return;
-    if (!this.buildingGroup)
-      this.buildingGroup = createBuildingLayerGroup();
-    if (!this.map.hasLayer(this.buildingGroup))
-      this.buildingGroup.addTo(this.map);
+      throw new Error("Fatal: Map uninitialized during navTwinPeaks.");
+    this.layerManager.ensure("building", this.map);
     this.map.setView([37.7525, -122.4475], 15, { animate: false });
     this.currentPanZoomIndex = 4;
-    mapStore.update((s) => ({ ...s, buildingsVisible: true, panZoomStep: 7, activeStep: 7 }));
+    mapStore.update((currentMapState) => ({ ...currentMapState, buildingsVisible: true, panZoomStep: 7, activeStep: 7 }));
   }
   addOverlays() {
     if (!this.map)
-      return;
-    if (!this.parkGroup)
-      this.parkGroup = createParkLayerGroup();
-    if (!this.map.hasLayer(this.parkGroup))
-      this.parkGroup.addTo(this.map);
-    if (!this.riverGroup)
-      this.riverGroup = createRiverLayerGroup();
-    if (!this.map.hasLayer(this.riverGroup))
-      this.riverGroup.addTo(this.map);
-    if (!this.buildingGroup)
-      this.buildingGroup = createBuildingLayerGroup();
-    if (!this.map.hasLayer(this.buildingGroup))
-      this.buildingGroup.addTo(this.map);
-    if (!this.routeGroup)
-      this.routeGroup = createRouteLayerGroup();
-    if (!this.map.hasLayer(this.routeGroup))
-      this.routeGroup.addTo(this.map);
-    if (!this.transitGroup)
-      this.transitGroup = createTransitLayerGroup();
-    if (!this.map.hasLayer(this.transitGroup))
-      this.transitGroup.addTo(this.map);
-    if (!this.peakGroup)
-      this.peakGroup = createPeakLayerGroup();
-    if (!this.map.hasLayer(this.peakGroup))
-      this.peakGroup.addTo(this.map);
-    mapStore.update((s) => ({
-      ...s,
+      throw new Error("Fatal: Map uninitialized during addOverlays.");
+    this.layerManager.ensure("park", this.map);
+    this.layerManager.ensure("river", this.map);
+    this.layerManager.ensure("building", this.map);
+    this.layerManager.ensure("route", this.map);
+    this.layerManager.ensure("transit", this.map);
+    this.layerManager.ensure("peak", this.map);
+    mapStore.update((currentMapState) => ({
+      ...currentMapState,
       parksVisible: true,
       riversVisible: true,
       buildingsVisible: true,
@@ -10546,87 +10648,39 @@ class BenchmarkDriver {
   }
   toggleParks() {
     if (!this.map)
-      return;
-    if (!this.parkGroup)
-      this.parkGroup = createParkLayerGroup();
-    if (this.map.hasLayer(this.parkGroup)) {
-      this.map.removeLayer(this.parkGroup);
-      mapStore.update((s) => ({ ...s, parksVisible: false }));
-    } else {
-      this.parkGroup.addTo(this.map);
-      mapStore.update((s) => ({ ...s, parksVisible: true }));
-    }
+      throw new Error("Fatal: Map uninitialized during toggleParks.");
+    this.layerManager.toggle("park", this.map);
   }
   toggleRivers() {
     if (!this.map)
-      return;
-    if (!this.riverGroup)
-      this.riverGroup = createRiverLayerGroup();
-    if (this.map.hasLayer(this.riverGroup)) {
-      this.map.removeLayer(this.riverGroup);
-      mapStore.update((s) => ({ ...s, riversVisible: false }));
-    } else {
-      this.riverGroup.addTo(this.map);
-      mapStore.update((s) => ({ ...s, riversVisible: true }));
-    }
+      throw new Error("Fatal: Map uninitialized during toggleRivers.");
+    this.layerManager.toggle("river", this.map);
   }
   toggleBuildings() {
     if (!this.map)
-      return;
-    if (!this.buildingGroup)
-      this.buildingGroup = createBuildingLayerGroup();
-    if (this.map.hasLayer(this.buildingGroup)) {
-      this.map.removeLayer(this.buildingGroup);
-      mapStore.update((s) => ({ ...s, buildingsVisible: false }));
-    } else {
-      this.buildingGroup.addTo(this.map);
-      mapStore.update((s) => ({ ...s, buildingsVisible: true }));
-    }
+      throw new Error("Fatal: Map uninitialized during toggleBuildings.");
+    this.layerManager.toggle("building", this.map);
   }
   toggleRoutes() {
     if (!this.map)
-      return;
-    if (!this.routeGroup)
-      this.routeGroup = createRouteLayerGroup();
-    if (this.map.hasLayer(this.routeGroup)) {
-      this.map.removeLayer(this.routeGroup);
-      mapStore.update((s) => ({ ...s, routesVisible: false }));
-    } else {
-      this.routeGroup.addTo(this.map);
-      mapStore.update((s) => ({ ...s, routesVisible: true }));
-    }
+      throw new Error("Fatal: Map uninitialized during toggleRoutes.");
+    this.layerManager.toggle("route", this.map);
   }
   toggleTransit() {
     if (!this.map)
-      return;
-    if (!this.transitGroup)
-      this.transitGroup = createTransitLayerGroup();
-    if (this.map.hasLayer(this.transitGroup)) {
-      this.map.removeLayer(this.transitGroup);
-      mapStore.update((s) => ({ ...s, transitVisible: false }));
-    } else {
-      this.transitGroup.addTo(this.map);
-      mapStore.update((s) => ({ ...s, transitVisible: true }));
-    }
+      throw new Error("Fatal: Map uninitialized during toggleTransit.");
+    this.layerManager.toggle("transit", this.map);
   }
   togglePeaks() {
     if (!this.map)
-      return;
-    if (!this.peakGroup)
-      this.peakGroup = createPeakLayerGroup();
-    if (this.map.hasLayer(this.peakGroup)) {
-      this.map.removeLayer(this.peakGroup);
-      mapStore.update((s) => ({ ...s, peaksVisible: false }));
-    } else {
-      this.peakGroup.addTo(this.map);
-      mapStore.update((s) => ({ ...s, peaksVisible: true }));
-    }
+      throw new Error("Fatal: Map uninitialized during togglePeaks.");
+    this.layerManager.toggle("peak", this.map);
   }
   nextPanZoomIncrement() {
     if (!this.map)
-      return;
-    const step = this.currentPanZoomIndex % 4;
-    switch (step) {
+      throw new Error("Fatal: Map uninitialized during nextPanZoomIncrement.");
+    const navigationStepIndex = this.currentPanZoomIndex % 4;
+    switch (navigationStepIndex) {
       case 0:
         this.navGoldenGatePark();
         break;
@@ -10640,32 +10694,17 @@ class BenchmarkDriver {
         this.navTwinPeaks();
         break;
     }
-    this.currentPanZoomIndex = (step + 1) % 4;
+    this.currentPanZoomIndex = (navigationStepIndex + 1) % 4;
   }
   teardown() {
     if (this.map) {
-      if (this.routeGroup && this.map.hasLayer(this.routeGroup))
-        this.map.removeLayer(this.routeGroup);
-      if (this.riverGroup && this.map.hasLayer(this.riverGroup))
-        this.map.removeLayer(this.riverGroup);
-      if (this.peakGroup && this.map.hasLayer(this.peakGroup))
-        this.map.removeLayer(this.peakGroup);
-      if (this.parkGroup && this.map.hasLayer(this.parkGroup))
-        this.map.removeLayer(this.parkGroup);
-      if (this.buildingGroup && this.map.hasLayer(this.buildingGroup))
-        this.map.removeLayer(this.buildingGroup);
-      if (this.transitGroup && this.map.hasLayer(this.transitGroup))
-        this.map.removeLayer(this.transitGroup);
+      this.layerManager.removeAll(this.map);
       this.map.remove();
       this.map = null;
+    } else {
+      this.layerManager.reset();
     }
     this.topographicLayer = null;
-    this.routeGroup = null;
-    this.riverGroup = null;
-    this.peakGroup = null;
-    this.parkGroup = null;
-    this.buildingGroup = null;
-    this.transitGroup = null;
     this.currentPanZoomIndex = 0;
     resetParsedDatasets();
     mapStore.set({
@@ -10687,86 +10726,13 @@ class BenchmarkDriver {
   }
   forceCanvasRasterization(assertNonEmpty = true) {
     if (!this.map)
-      return 0;
+      throw new Error("Fatal: Map uninitialized during forceCanvasRasterization.");
     const overlayPane = this.map.getPane("overlayPane");
     const tilePane = this.map.getPane("tilePane");
     const overlayCanvases = overlayPane ? Array.from(overlayPane.querySelectorAll("canvas")) : [];
     const tileCanvases = tilePane ? Array.from(tilePane.querySelectorAll("canvas")) : [];
     const canvases = [...overlayCanvases, ...tileCanvases];
-    if (canvases.length === 0)
-      return 0;
-    let checksum = 0;
-    let hasNonZeroAlpha = false;
-    for (const canvas of canvases) {
-      const w = canvas.width;
-      const h = canvas.height;
-      if (w <= 0 || h <= 0)
-        continue;
-      const ctx = canvas.getContext("2d");
-      if (!ctx)
-        continue;
-      const sampleBoxes = [
-        [0, 0],
-        [Math.max(0, w - 4), 0],
-        [0, Math.max(0, h - 4)],
-        [Math.max(0, w - 4), Math.max(0, h - 4)],
-        [Math.floor(Math.max(0, w - 4) / 2), Math.floor(Math.max(0, h - 4) / 2)]
-      ];
-      for (const [x, y] of sampleBoxes) {
-        try {
-          const sampleWidth = Math.min(4, w - x);
-          const sampleHeight = Math.min(4, h - y);
-          if (sampleWidth <= 0 || sampleHeight <= 0)
-            continue;
-          const imageData = ctx.getImageData(x, y, sampleWidth, sampleHeight);
-          const data = imageData.data;
-          for (let i = 0; i < data.length; i += 4) {
-            const r = data[i];
-            const g = data[i + 1];
-            const b = data[i + 2];
-            const a = data[i + 3];
-            if (a > 0)
-              hasNonZeroAlpha = true;
-            checksum = (checksum << 5) - checksum + r + (g << 1) + b + (a << 2) | 0;
-          }
-        } catch (e) {
-          console.warn("getImageData sample failed:", e);
-        }
-      }
-    }
-    if (!hasNonZeroAlpha) {
-      for (const canvas of canvases) {
-        const w = canvas.width;
-        const h = canvas.height;
-        if (w <= 0 || h <= 0)
-          continue;
-        const ctx = canvas.getContext("2d");
-        if (!ctx)
-          continue;
-        try {
-          const bandHeight = Math.min(32, h);
-          const y = Math.floor(Math.max(0, h - bandHeight) / 2);
-          const bandData = ctx.getImageData(0, y, w, bandHeight);
-          const data = bandData.data;
-          for (let i = 0; i < data.length; i += 4) {
-            const r = data[i];
-            const g = data[i + 1];
-            const b = data[i + 2];
-            const a = data[i + 3];
-            if (a > 0)
-              hasNonZeroAlpha = true;
-            checksum = (checksum << 5) - checksum + r + (g << 1) + b + (a << 2) | 0;
-          }
-          if (hasNonZeroAlpha)
-            break;
-        } catch (e) {
-          console.warn("getImageData fallback band failed:", e);
-        }
-      }
-    }
-    if (assertNonEmpty && !hasNonZeroAlpha) {
-      console.warn("Canvas rasterization verification failed: all sampled pixels have zero alpha (empty render).");
-    }
+    const checksum = CanvasRasterizationVerifier.verify(canvases, assertNonEmpty);
     if (typeof window !== "undefined")
       window._lastCanvasChecksum = checksum;
     return checksum;
@@ -10788,7 +10754,7 @@ if (typeof window !== "undefined") {
   window.benchmarkNextPanZoomIncrement = () => benchmarkDriver.nextPanZoomIncrement();
   window.benchmarkTeardown = () => benchmarkDriver.teardown();
   window.benchmarkFlushAsync = () => benchmarkDriver.flushAsync();
-  window.benchmarkForceRasterization = () => benchmarkDriver.forceCanvasRasterization();
+  window.benchmarkForceRasterization = (assertNonEmpty) => benchmarkDriver.forceCanvasRasterization(assertNonEmpty);
 }
 function create_fragment$2(ctx) {
   let aside;
@@ -11703,6 +11669,9 @@ function create_fragment$2(ctx) {
   };
 }
 function formatCount(num) {
+  if (typeof num !== "number" || isNaN(num) || num < 0) {
+    throw new Error("Fatal: Invalid number passed to formatCount.");
+  }
   if (num >= 1e6) {
     return (num / 1e6).toFixed(1) + "m";
   }
@@ -11776,6 +11745,9 @@ function create_fragment$1(ctx) {
 function instance$1($$self, $$props, $$invalidate) {
   let container;
   onMount(() => {
+    if (!container) {
+      throw new Error("Fatal: Container DOM element not bound in MapView onMount.");
+    }
     benchmarkDriver.setContainer(container);
     benchmarkDriver.initializeMap();
   });

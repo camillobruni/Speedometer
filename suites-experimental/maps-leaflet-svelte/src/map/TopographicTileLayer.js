@@ -9,73 +9,75 @@ export const TopographicTileLayer = L.GridLayer.extend({
         this.on("tileunload", this._onTileUnload, this);
     },
 
-    _onTileUnload: function (e) {
-        const tile = e.tile;
-        if (tile && tile.nodeName === "CANVAS") {
-            // Reset to 1x1 to immediately deallocate CPU/GPU backing stores
-            tile.width = 1;
-            tile.height = 1;
-            canvasPool.push(tile);
+    _onTileUnload: function (unloadEvent) {
+        const tile = unloadEvent.tile;
+        if (!tile || tile.nodeName !== "CANVAS") {
+            throw new Error("Fatal: Tile unload targeted a non-canvas element.");
         }
+        tile.width = 1;
+        tile.height = 1;
+        canvasPool.push(tile);
     },
 
-    _getPooledCanvas: function (size) {
+    _getPooledCanvas: function (tileDimensions) {
         let canvas = canvasPool.pop();
         if (!canvas)
             canvas = document.createElement("canvas");
 
-        canvas.width = size.x;
-        canvas.height = size.y;
+        canvas.width = tileDimensions.x;
+        canvas.height = tileDimensions.y;
         return canvas;
     },
 
-    createTile: function (coords, done) {
-        const size = this.getTileSize();
-        const canvas = this._getPooledCanvas(size);
-        const ctx = canvas.getContext("2d");
+    createTile: function (tileCoordinates, done) {
+        const tileDimensions = this.getTileSize();
+        const canvas = this._getPooledCanvas(tileDimensions);
+        const renderingContext = canvas.getContext("2d");
+        if (!renderingContext) {
+            throw new Error("Fatal: Failed to get 2d context for topographic tile canvas.");
+        }
 
-        this._renderTopography(ctx, coords, size.x, size.y);
+        this._renderTopography(renderingContext, tileCoordinates, tileDimensions.x, tileDimensions.y);
 
-        // Synchronously call done without setTimeout deferrals
         done(null, canvas);
         return canvas;
     },
 
-    _renderTopography: function (ctx, coords, width, height) {
-        ctx.fillStyle = THEME_COLORS.terrain;
-        ctx.fillRect(0, 0, width, height);
+    _renderTopography: function (renderingContext, tileCoordinates, tileWidth, tileHeight) {
+        renderingContext.fillStyle = THEME_COLORS.terrain;
+        renderingContext.fillRect(0, 0, tileWidth, tileHeight);
 
-        ctx.strokeStyle = "#242a38";
-        ctx.lineWidth = 1;
-        const step = 64;
-        ctx.beginPath();
-        for (let x = step; x < width; x += step) {
-            ctx.moveTo(x, 0);
-            ctx.lineTo(x, height);
+        renderingContext.strokeStyle = "#242a38";
+        renderingContext.lineWidth = 1;
+        const gridStepSize = 64;
+        renderingContext.beginPath();
+        for (let x = gridStepSize; x < tileWidth; x += gridStepSize) {
+            renderingContext.moveTo(x, 0);
+            renderingContext.lineTo(x, tileHeight);
         }
-        for (let y = step; y < height; y += step) {
-            ctx.moveTo(0, y);
-            ctx.lineTo(width, y);
+        for (let y = gridStepSize; y < tileHeight; y += gridStepSize) {
+            renderingContext.moveTo(0, y);
+            renderingContext.lineTo(tileWidth, y);
         }
-        ctx.stroke();
+        renderingContext.stroke();
 
-        const hash = Math.sin(coords.x * 12.9898 + coords.y * 78.233 + coords.z * 43.123) * 43758.5453;
-        const numContours = Math.floor(Math.abs(hash) % 3) + 1;
+        const contourHash = Math.sin(tileCoordinates.x * 12.9898 + tileCoordinates.y * 78.233 + tileCoordinates.z * 43.123) * 43758.5453;
+        const numContours = Math.floor(Math.abs(contourHash) % 3) + 1;
 
-        ctx.strokeStyle = "#2c3447";
-        ctx.lineWidth = 1.5;
+        renderingContext.strokeStyle = "#2c3447";
+        renderingContext.lineWidth = 1.5;
         for (let i = 1; i <= numContours; i++) {
-            const radius = Math.abs(Math.sin(hash + i)) * 60 + 20;
-            const centerX = Math.abs(Math.cos(hash * i)) * (width - 60) + 30;
-            const centerY = Math.abs(Math.sin(hash / i)) * (height - 60) + 30;
-            ctx.beginPath();
-            ctx.ellipse(centerX, centerY, radius, radius * 0.7, hash, 0, Math.PI * 2);
-            ctx.stroke();
+            const radius = Math.abs(Math.sin(contourHash + i)) * 60 + 20;
+            const centerX = Math.abs(Math.cos(contourHash * i)) * (tileWidth - 60) + 30;
+            const centerY = Math.abs(Math.sin(contourHash / i)) * (tileHeight - 60) + 30;
+            renderingContext.beginPath();
+            renderingContext.ellipse(centerX, centerY, radius, radius * 0.7, contourHash, 0, Math.PI * 2);
+            renderingContext.stroke();
         }
 
-        ctx.fillStyle = "#4a5568";
-        ctx.font = "10px sans-serif";
-        ctx.fillText(`z${coords.z} / ${coords.x} / ${coords.y}`, 8, 16);
+        renderingContext.fillStyle = "#4a5568";
+        renderingContext.font = "10px sans-serif";
+        renderingContext.fillText(`z${tileCoordinates.z} / ${tileCoordinates.x} / ${tileCoordinates.y}`, 8, 16);
     }
 });
 

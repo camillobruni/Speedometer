@@ -3,6 +3,9 @@
     import { benchmarkDriver } from "../services/benchmarkDriver.js";
 
     function formatCount(num) {
+        if (typeof num !== "number" || isNaN(num) || num < 0) {
+            throw new Error("Fatal: Invalid number passed to formatCount.");
+        }
         if (num >= 1000000) {
             return (num / 1000000).toFixed(1) + "m";
         }

@@ -685,14 +685,12 @@ svg.leaflet-image-layer.leaflet-interactive path {
     --radius-control: 8px;
 }
 
-/* Global Animation & Transition Ban for Speedometer Determinism */
 *, *::before, *::after {
     transition: none !important;
     animation: none !important;
     box-shadow: none !important;
 }
 
-/* Speedometer Rule 6: 100% Full Section Text Opacity Guarantee */
 .section-card, .control-btn, .control-btn:disabled, .panel-title, .section-title, .btn-label-row, .btn-top-row, .btn-label-group, .layer-icon, .btn-telemetry, .status-indicator {
     opacity: 1 !important;
 }
@@ -886,7 +884,6 @@ body, html {
     color: #fff;
 }
 
-/* Leaflet Overrides */
 .leaflet-container {
     background-color: var(--color-terrain) !important;
     font-family: inherit !important;
