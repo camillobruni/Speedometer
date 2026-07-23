@@ -83,13 +83,13 @@ export class SuiteRunner {
 
         performance.mark(suiteStartLabel);
         for (const step of this.#suite.tests) {
-            if (this.#client?.willRunTest)
-                await this.#client.willRunTest(this.#suite, step);
+            await this.#client?.willRunTest?.(this.#suite, step);
 
             const stepRunnerType = this.#suite.type ?? this.params.useAsyncSteps ? "async" : "default";
             const stepRunnerClass = STEP_RUNNER_LOOKUP[stepRunnerType];
-            const stepRunner = new stepRunnerClass(this.#frame, this.#page, this.#params, this.#suite, step, this._recordTestResults, stepRunnerType);
-            await stepRunner.runStep();
+            const stepRunner = new stepRunnerClass(this.#frame, this.#page, this.#params, this.#suite, step, stepRunnerType);
+            let { syncTime, asyncTime } = await stepRunner.runStep();
+            this._recordTestResults(step, syncTime, asyncTime);
         }
         performance.mark(suiteEndLabel);
 
@@ -123,7 +123,7 @@ export class SuiteRunner {
         });
     }
 
-    _recordTestResults = async (step, syncTime, asyncTime) => {
+    async _recordTestResults(step, syncTime, asyncTime) {
         // Skip reporting updates for the warmup suite.
         if (this.#suite === WarmupSuite)
             return;
@@ -135,11 +135,10 @@ export class SuiteRunner {
         };
         this.#suiteResults.prepare = this.#prepareTime;
         this.#suiteResults.total = total;
-    };
+    }
 
     async _updateClient(suite = this.#suite) {
-        if (this.#client?.didFinishSuite)
-            await this.#client.didFinishSuite(suite);
+        await this.#client?.didFinishSuite?.(suite);
     }
 }
 
