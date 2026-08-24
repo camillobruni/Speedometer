@@ -1,7 +1,6 @@
 import { execFileSync, spawn } from "child_process";
 import { styleText } from "node:util";
 import fs from "fs";
-import serve, { DEFAULT_CACHE_DURATION } from "./server.mjs";
 
 export const GITHUB_ACTIONS_OUTPUT = "GITHUB_ACTIONS_OUTPUT" in process.env || "GITHUB_EVENT_PATH" in process.env;
 
