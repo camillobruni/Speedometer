@@ -36,8 +36,6 @@ class MainBenchmarkClient {
         this.prepareUI();
         this.evaluateParams();
         this._showSection(window.location.hash);
-
-
     }
 
     isRunning() {
