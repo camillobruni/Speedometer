@@ -37,9 +37,7 @@ class MainBenchmarkClient {
         this.evaluateParams();
         this._showSection(window.location.hash);
 
-        this._benchmarkConfiguratorPromise.then(() => {
-            window.dispatchEvent(new Event("SpeedometerReady"));
-        });
+
     }
 
     isRunning() {
@@ -405,6 +403,8 @@ class MainBenchmarkClient {
             this.start();
         else
             this._setBenchmarkState(BENCHMARK_STATE.READY);
+
+        window.dispatchEvent(new Event("SpeedometerReady"));
     }
 
     async _preloadResources(benchmarkConfigurator) {
