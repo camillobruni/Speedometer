@@ -22,7 +22,6 @@ async function testPage(url) {
             callback();
         else
             globalThis.addEventListener("SpeedometerReady", () => callback(), { once: true });
-
     });
 
     console.log("    - Awaiting Benchmark");

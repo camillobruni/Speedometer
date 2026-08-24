@@ -103,7 +103,6 @@ export class ResourcePreloader {
                 timeoutId = setTimeout(() => {
                     if (this._pendingRequest?.type === messageData.type)
                         this._rejectPendingRequest(`Service worker message timed out: ${messageData.type}`);
-
                 }, timeoutMs);
             }
 
@@ -149,7 +148,6 @@ export class ResourcePreloader {
         await this._postMessage({ type: SW_MESSAGES.STOP_PRELOADING });
         if (this._activePreloadPromise)
             await this._activePreloadPromise;
-
     }
 
     async preloadSuites(suites, clearCache = true, onProgress) {
