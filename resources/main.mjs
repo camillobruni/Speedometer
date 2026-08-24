@@ -30,6 +30,11 @@ class MainBenchmarkClient {
     _steppingPromise = null;
     _steppingResolver = null;
     _benchmarkConfiguratorPromise = null;
+    _isInitialized = false;
+
+    get isInitialized() {
+        return this._isInitialized;
+    }
 
     constructor() {
         this._benchmarkConfiguratorPromise = import("./benchmark-configurator.mjs");
@@ -402,6 +407,7 @@ class MainBenchmarkClient {
         else
             this._setBenchmarkState(BENCHMARK_STATE.READY);
 
+        this._isInitialized = true;
         window.dispatchEvent(new Event("SpeedometerReady"));
     }
 
