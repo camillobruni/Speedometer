@@ -23,8 +23,7 @@ class MainBenchmarkClient {
     _measuredValuesList = [];
     _finishedTestCount = 0;
     _progressCompleted = null;
-    _isRunning = false;
-    _hasResults = false;
+    _state = BENCHMARK_STATE.IDLE;
     _developerModeContainer = null;
     _metrics = Object.create(null);
     _resourcePreloader = new ResourcePreloader();
