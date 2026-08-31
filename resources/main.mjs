@@ -390,13 +390,14 @@ class MainBenchmarkClient {
             document.body.append(this._developerModeContainer);
         }
 
-        if (params.startAutomatically)
-            this.start();
-        else
+        if (!params.startAutomatically)
             this._setBenchmarkState(BENCHMARK_STATE.READY);
 
         this._isInitialized = true;
         window.dispatchEvent(new Event("SpeedometerReady"));
+
+        if (params.startAutomatically)
+            this.start();
     }
 
     async _setBenchmarkState(state) {
