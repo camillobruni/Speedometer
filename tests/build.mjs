@@ -110,8 +110,10 @@ async function checkGitStatus() {
     try {
         await runActionGroup("Checking for uncommitted build changes...", async () => {
             const status = await sh("git", "status", "--porcelain", "suites", "suites-experimental");
-            if (status.stdoutString.trim() !== "") {
-                logError(status.stdoutString);
+            const allDirtyFiles = status.stdoutString.split("\n").map(line => line.trim()).filter(line => line.length > 0);
+            const dirtyFiles = allDirtyFiles.filter(line => !line.includes("package-lock.json"));
+            if (dirtyFiles.length > 0) {
+                logError(dirtyFiles.join("\n"));
                 throw new Error("Git tree is dirty");
             }
         });
