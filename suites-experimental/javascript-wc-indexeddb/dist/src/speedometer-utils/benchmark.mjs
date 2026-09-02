@@ -34,6 +34,7 @@ export class BenchmarkSuite {
         this.tests = tests;
     }
 
+
     async runAndRecord(params, onProgress) {
         const measuredValues = {
             tests: {},
