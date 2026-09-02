@@ -25,14 +25,14 @@ function getWorkloads() {
     const skippedWorkloads = new Set();
     const suites = [...DefaultSuites, ...ExperimentalSuites];
     for (const suite of suites) {
-        if (suite.url) {
-            const workload = findWorkloadForUrl(suite.url);
-            if (workload) {
-                if (EXCLUDES.has(workload))
-                    skippedWorkloads.add(workload);
-                else
-                    workloads.add(workload);
-            }
+        if (!suite.url)
+            continue;
+        const workload = findWorkloadForUrl(suite.url);
+        if (workload) {
+            if (EXCLUDES.has(workload))
+                skippedWorkloads.add(workload);
+            else
+                workloads.add(workload);
         }
     }
     if (skippedWorkloads.size > 0) {
