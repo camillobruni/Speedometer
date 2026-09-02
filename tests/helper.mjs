@@ -130,7 +130,6 @@ export function parseGitFiles(output, { isPorcelain = false } = {}) {
         }
         if (fs.existsSync(line))
             files.add(line);
-
     }
     return [...files];
 }
