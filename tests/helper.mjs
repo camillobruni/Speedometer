@@ -4,16 +4,6 @@ import fs from "fs";
 
 export const GITHUB_ACTIONS_OUTPUT = "GITHUB_ACTIONS_OUTPUT" in process.env || "GITHUB_EVENT_PATH" in process.env;
 
-export function getChangedFiles() {
-    // "--diff-filter=ACMR" => ignore deleted files.
-    const diffOut = execFileSync("git", ["diff", "--name-only", "--diff-filter=ACMR", "@{upstream}"], { encoding: "utf8" });
-    const files = diffOut
-        .split("\n")
-        .map((f) => f.trim())
-        .filter((f) => f.length > 0 && fs.existsSync(f));
-    return [...new Set(files)];
-}
-
 export function logInfo(...args) {
     const text = args.join(" ");
     console.log(styleText("yellow", text));
@@ -118,4 +108,29 @@ export async function sh(binary, ...args) {
         if (GITHUB_ACTIONS_OUTPUT)
             console.log("::endgroup::");
     }
+}
+
+export function getChangedFiles() {
+    // "--diff-filter=ACMR" => ignore deleted files.
+    const diffOut = execFileSync("git", ["diff", "--name-only", "--diff-filter=ACMR", "@{upstream}"], { encoding: "utf8" });
+    return parseGitFiles(diffOut, { isPorcelain: false });
+}
+
+export function parseGitFiles(output, { isPorcelain = false } = {}) {
+    const files = new Set();
+    for (let line of output.split("\n")) {
+        line = line.trimEnd();
+        if (isPorcelain) {
+            if (line.length <= 3)
+                continue;
+            line = line.substring(3);
+        } else {
+            if (line.length === 0)
+                continue;
+        }
+        if (fs.existsSync(line))
+            files.add(line);
+
+    }
+    return [...files];
 }

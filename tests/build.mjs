@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { DefaultSuites } from "../suites/default-suites.mjs";
 import { ExperimentalSuites } from "../suites-experimental/suites.mjs";
-import { getChangedFiles, logError, logWarn, runActionGroup, sh } from "./helper.mjs";
+import { getChangedFiles, parseGitFiles, logError, logWarn, runActionGroup, sh } from "./helper.mjs";
 import { EXCLUDES } from "./excludes.mjs";
 
 function findWorkloadForUrl(suiteUrl) {
@@ -110,8 +110,8 @@ async function checkGitStatus() {
     try {
         await runActionGroup("Checking for uncommitted build changes...", async () => {
             const status = await sh("git", "status", "--porcelain", "suites", "suites-experimental");
-            const allDirtyFiles = status.stdoutString.split("\n").map(line => line.trim()).filter(line => line.length > 0);
-            const dirtyFiles = allDirtyFiles.filter(line => !line.includes("package-lock.json"));
+            const allDirtyFiles = parseGitFiles(status.stdoutString, { isPorcelain: true });
+            const dirtyFiles = allDirtyFiles.filter((path) => !path.includes("package-lock.json"));
             if (dirtyFiles.length > 0) {
                 logError(dirtyFiles.join("\n"));
                 throw new Error("Git tree is dirty");
