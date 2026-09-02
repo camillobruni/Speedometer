@@ -10,5 +10,5 @@ export const EXCLUDES = new Set([
     "suites/charts",
     "suites-experimental/javascript-wc-indexeddb",
     "suites/todomvc/vanilla-examples/javascript-web-components",
-    "suites/todomvc/vanilla-examples/javascript-web-components-complex"
+    "suites/todomvc/vanilla-examples/javascript-web-components-complex",
 ]);
