@@ -4,6 +4,7 @@ export const EXCLUDES = new Set([
     "suites/charts",
     "suites/editors",
     "suites/newssite/news-next",
+    "suites/newssite/news-nuxt",
     "suites/react-stockcharts",
     "suites/todomvc/architecture-examples/angular-complex",
     "suites/todomvc/architecture-examples/angular",
